@@ -220,18 +220,6 @@ def test_on_this_day_and_milestones(client):
     assert stats.milestones(evs)[0][1] == "1. Besuch"
 
 
-def test_password_protection(client, monkeypatch):
-    from app.config import settings
-    monkeypatch.setattr(settings, "app_password", "geheim")
-    r = client.get("/events", follow_redirects=False)
-    assert r.status_code == 303 and r.headers["location"] == "/login"
-    assert client.get("/health").status_code == 200
-    client.post("/login", data={"password": "falsch"})
-    assert client.get("/events", follow_redirects=False).status_code == 303
-    client.post("/login", data={"password": "geheim"})
-    assert client.get("/events").status_code == 200
-
-
 def test_escaping(client):
     vid = make_venue(client, name="<script>x</script>")
     r = client.get(f"/venues/{vid}")

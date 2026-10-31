@@ -704,10 +704,21 @@ Nicht verbindlich ausgewählt wurden:
 - SQLite als Datenbank (eine Datei im Datenvolume, einfach zu sichern), Zugriff über SQLAlchemy.
 - Leaflet mit Leaflet.markercluster für die Kombi-Karte, Kacheln standardmäßig von OpenStreetMap (per `TILE_URL` austauschbar). Die Bibliotheken liegen im Repository, kein CDN nötig.
 - Pillow und pillow-heif für Vorschaubilder inklusive HEIC.
-- Ein einzelner Container, Fotos nur lesend eingebunden, optionaler Passwortschutz zusätzlich zum VPN.
+- Ein einzelner Container, Fotos nur lesend eingebunden, Anmeldung mit Benutzern, TOTP-2FA und Rollen (im VPN abschaltbar, siehe 3.10).
 - GitLab CI: Tests, dann Image-Build und Push in die GitLab Container Registry.
 
 Details zu Betrieb und Import: `docs/BETRIEB.md`, `docs/IMPORT_FORMAT.md`.
+
+### 3.10 Betrieb auf einem Rootserver, Login und Rollen
+
+**Neue Entscheidung (31.10.2026):** Die App soll alternativ auf einem Rootserver laufen, dort hinter dem vorhandenen **Traefik** (kein Caddy). Dafür:
+
+- Anmeldung mit Benutzern und **2FA per TOTP**, verpflichtend.
+- Benutzer anlegen mit Rolle **nur lesen** oder **lesen und schreiben**; zusätzlich eine Administratorrolle für die Benutzerverwaltung (Ergänzung des Assistenten).
+- Auf dem NAS im VPN kann die Anmeldung abgeschaltet bleiben; alternativ Betrieb über den Synology Reverse Proxy mit Anmeldung.
+- Die Fotofunktion ist auf dem Server optional.
+
+Mehrbenutzerbetrieb heißt hier: mehrere Zugänge auf dieselbe Sammlung, keine getrennten Sammlungen je Benutzer.
 
 ## 4) Datenmodell
 
@@ -833,6 +844,8 @@ Die Begründungen sind aus den Nutzerangaben und dem Gesprächszusammenhang zusa
 | Stadionführung/Museum/Außenbesichtigung als separate Besuchsarten | Offen | Vorgeschlagen, aber nicht ausdrücklich entschieden |
 | Betrieb als Docker-Container auf dem NAS | **Neue Entscheidung (31.10.2026):** Festgelegt | Vom Nutzer nach der Übergabe ausdrücklich so festgelegt |
 | Build über GitLab (CI/CD), später | **Neue Entscheidung (31.10.2026):** Festgelegt | Vom Nutzer nach der Übergabe ausdrücklich so festgelegt |
+| Alternativ Rootserver hinter Traefik, Login mit TOTP-2FA, Rollen lesen/schreiben | **Neue Entscheidung (31.10.2026):** Festgelegt | Öffentlicher Zugriff ohne VPN braucht echte Anmeldung |
+| NAS im VPN ohne Anmeldung oder über Synology Reverse Proxy | **Neue Entscheidung (31.10.2026):** Festgelegt | Im abgeschotteten Netz genügt der VPN-Schutz |
 
 ## 6) Aktueller Stand: Was fertig ist, was offen ist
 
@@ -895,7 +908,7 @@ Die Begründungen sind aus den Nutzerangaben und dem Gesprächszusammenhang zusa
 - Priorisierung und Umfang einer ersten Version.
 - *(Neu ergänzt am 31.10.2026)* Konkrete Docker-/Compose-Konfiguration, GitLab-Pipeline, Image-Registry und Deployment-Weg aufs NAS.
 
-Mehrbenutzerbetrieb, Rollenmodell, allgemeiner Offlinebetrieb und ein konkreter Installations-/PWA-Umfang wurden nicht festgelegt.
+Mehrbenutzerbetrieb, Rollenmodell, allgemeiner Offlinebetrieb und ein konkreter Installations-/PWA-Umfang wurden nicht festgelegt. *(Neue Entscheidung (31.10.2026): Benutzer mit Rollen und 2FA, siehe Abschnitt 3.10.)*
 
 ## 7) Bekannte Probleme
 

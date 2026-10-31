@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Zwei-Faktor-Anmeldung einrichten</h1>
+{% if required %}<p class="warn">Auf diesem Server ist 2FA Pflicht. Bitte jetzt einrichten.</p>{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<div class="grid">
+<div class="card">
+<p>1. Den QR-Code mit einer Authenticator-App scannen (z. B. Aegis, 2FAS, Google/Microsoft Authenticator, 1Password, Bitwarden).</p>
+<div class="qr">{{ qr|safe }}</div>
+<p class="small">Oder manuell eingeben: <code style="word-break:break-all">{{ secret }}</code></p>
+</div>
+<div class="card">
+<form method="post" action="/account/2fa/confirm" class="allow-ro">
+<p>2. Den angezeigten 6-stelligen Code eingeben.</p>
+<input name="code" inputmode="numeric" autocomplete="one-time-code" required maxlength="6" autofocus>
+<p><button>Bestätigen</button></p></form>
+<form method="post" action="/logout" class="allow-ro"><button class="link small">Abmelden</button></form>
+</div>
+</div>
+{% endblock %}

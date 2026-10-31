@@ -252,3 +252,32 @@ class PhotoLink(Base):
     photo: Mapped[Photo] = relationship(back_populates="links")
     visit: Mapped[Visit | None] = relationship(back_populates="photo_links")
     venue: Mapped[Venue | None] = relationship(back_populates="photo_links")
+
+
+class User(Base):
+    """Benutzer mit Rolle: viewer (nur lesen), editor (lesen + schreiben), admin (+ Benutzer)."""
+
+    __tablename__ = "app_user"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(80), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(300))
+    role: Mapped[str] = mapped_column(String(10), default="viewer")
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    totp_secret: Mapped[str | None] = mapped_column(String(64))
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    totp_last_step: Mapped[int | None] = mapped_column(Integer)  # gegen Wiederverwendung
+    recovery_codes: Mapped[list] = mapped_column(JSON, default=list)  # Hashes
+    failed_logins: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[dt.datetime | None] = mapped_column(DateTime)
+    # Erhöhen macht alle bestehenden Sitzungen des Benutzers ungültig
+    session_epoch: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.now)
+    last_login: Mapped[dt.datetime | None] = mapped_column(DateTime)
+
+    @property
+    def can_write(self) -> bool:
+        return self.role in ("editor", "admin")
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == "admin"

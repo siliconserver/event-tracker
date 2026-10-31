@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Mein Konto</h1>
+{% if msg %}<p class="warn">{{ msg }}</p>{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<div class="grid">
+<div class="card"><h2 style="margin-top:0">{{ u.username }}</h2>
+<p>Rolle: {{ roles[u.role] }}</p>
+<p>2FA: {% if u.totp_enabled %}aktiv · {{ u.recovery_codes|length }} Wiederherstellungscodes übrig{% else %}<b>nicht eingerichtet</b> – <a href="/account/2fa">jetzt einrichten</a>{% endif %}</p>
+{% if u.totp_enabled %}
+<form method="post" action="/account/recovery" class="allow-ro"><label>Neue Wiederherstellungscodes erzeugen (Passwort)</label>
+<input type="password" name="current" required autocomplete="current-password"><p><button class="secondary">Neu erzeugen</button></p></form>
+{% if not settings.require_2fa %}
+<form method="post" action="/account/2fa/disable" class="allow-ro"><label>2FA abschalten (Passwort)</label>
+<input type="password" name="current" required autocomplete="current-password"><p><button class="danger">Abschalten</button></p></form>
+{% endif %}{% endif %}
+</div>
+<div class="card"><h2 style="margin-top:0">Passwort ändern</h2>
+<form method="post" action="/account/password" class="allow-ro">
+<label>Aktuelles Passwort</label><input type="password" name="current" required autocomplete="current-password">
+<label>Neues Passwort (mind. 10 Zeichen)</label><input type="password" name="new" required minlength="10" autocomplete="new-password">
+<label>Wiederholen</label><input type="password" name="confirm" required autocomplete="new-password">
+<p><button>Ändern</button></p></form></div>
+</div>
+{% endblock %}

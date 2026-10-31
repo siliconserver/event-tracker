@@ -7,20 +7,32 @@
 <link rel="stylesheet" href="/static/style.css">
 {% block head %}{% endblock %}
 </head>
-<body>
+{% set user = request.state.user %}
+<body class="{{ 'readonly' if user and not user.can_write else '' }}">
 <header><nav>
   <a class="brand" href="/">Event-Tracker</a>
+  {% if user %}
   <a href="/events">Besuche</a>
   <a href="/venues">Spielstätten</a>
   <a href="/map">Karte</a>
   <a href="/stats">Statistik</a>
   <a href="/trips">Reisen</a>
+  {% if user.can_write %}
   <a href="/import">Import</a>
   <a href="/photos">Fotos</a>
   <a href="/events/new">+ Besuch</a>
-  {% if settings.app_password %}<form method="post" action="/logout"><button class="link" style="color:#fff">Abmelden</button></form>{% endif %}
+  {% endif %}
+  {% if settings.auth_enabled %}
+  <span class="navright">
+    {% if user.is_admin %}<a href="/users">Benutzer</a>{% endif %}
+    <a href="/account">{{ user.username }}</a>
+    <form method="post" action="/logout" class="inline allow-ro"><button class="link" style="color:#fff">Abmelden</button></form>
+  </span>
+  {% endif %}
+  {% endif %}
 </nav></header>
 <main>{% block content %}{% endblock %}</main>
+{% if user and not user.can_write %}<script src="/static/readonly.js"></script>{% endif %}
 {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -5,7 +5,7 @@ a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:under
 header { background:#1d1d1f; color:#fff; }
 header nav { max-width:1100px; margin:auto; display:flex; flex-wrap:wrap; gap:.25rem 1rem; align-items:center; padding:.6rem 1rem; }
 header a { color:#fff; } header .brand { font-weight:700; margin-right:1rem; }
-header form { margin-left:auto; }
+
 main { max-width:1100px; margin:1rem auto; padding:0 1rem 3rem; }
 h1 { font-size:1.6rem; margin:.5rem 0 1rem; } h2 { font-size:1.2rem; margin:1.5rem 0 .5rem; }
 .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:1rem; margin-bottom:1rem; }
@@ -40,3 +40,6 @@ button.danger { background:#8b0000; }
 .bar { background:var(--accent); height:.6rem; border-radius:3px; }
 pre.prompt { white-space:pre-wrap; background:#fafafa; border:1px solid var(--line); padding:.75rem; border-radius:8px; font-size:.8rem; max-height:24rem; overflow:auto; }
 @media (max-width:600px) { th.hide-sm, td.hide-sm { display:none; } }
+header .navright { margin-left:auto; display:flex; gap:1rem; align-items:center; }
+.codes { font-family:ui-monospace,monospace; font-size:1.1rem; columns:2; }
+.qr svg { width:220px; height:220px; background:#fff; padding:8px; border-radius:8px; }

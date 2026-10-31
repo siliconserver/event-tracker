@@ -13,8 +13,11 @@ services:
     environment:
       TZ: Europe/Berlin
       HOME_COUNTRY: Deutschland
-      # Optionaler Passwortschutz zusätzlich zum VPN (leer = aus)
-      APP_PASSWORD: ${APP_PASSWORD:-}
+      # Im VPN ohne Anmeldung. Über den Synology Reverse Proxy von außen erreichbar?
+      # Dann AUTH_ENABLED=true und COOKIE_SECURE=true setzen (siehe docs/BETRIEB.md).
+      AUTH_ENABLED: ${AUTH_ENABLED:-false}
+      REQUIRE_2FA: ${REQUIRE_2FA:-true}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     volumes:
       # Datenbank, Vorschaubilder, Schlüssel – dieses Verzeichnis sichern (Hyper Backup)
       - /volume1/docker/event-tracker:/data

@@ -2,7 +2,8 @@
 
 Persönliches Archiv tatsächlich besuchter Sportveranstaltungen und Spielstätten
 (Groundhopping): Fußball, MMA (z. B. Oktagon), später NFL. Selbst gehostet als
-Docker-Container auf der Synology DS420+, Zugriff per VPN, Build über GitLab CI.
+Docker-Container auf der Synology DS420+ (im VPN, ohne Anmeldung) oder auf einem Rootserver
+hinter Traefik (mit Login, TOTP-2FA und Rollen). Build über GitLab CI.
 
 Das vollständige Konzept mit allen Entscheidungen steht in [docs/KONZEPT.md](docs/KONZEPT.md).
 
@@ -31,6 +32,8 @@ Das vollständige Konzept mit allen Entscheidungen steht in [docs/KONZEPT.md](do
   Notizen; Reisen mit gemeinsamen Kosten; Jahresrückblick, „An diesem Tag“, Meilensteine,
   persönliche Rekorde; kombinierbare Suche (z. B. alle FCK-Auswärtsspiele, alle Finals,
   alle Spiele im Ausland).
+- **Benutzer**: Login mit 2FA (TOTP, Wiederherstellungscodes), Rollen „Nur lesen“,
+  „Lesen und schreiben“, „Administrator“; abschaltbar für den Betrieb im VPN.
 - **Backup**: vollständiger JSON-Export unter `/export.json`.
 
 ## Technik
@@ -54,7 +57,13 @@ docker build -t event-tracker .
 docker run -p 8085:8000 -v $PWD/data:/data -v /pfad/zu/fotos:/photos:ro event-tracker
 ```
 
-Betrieb auf der Synology, GitLab-Pipeline und Sicherung: [docs/BETRIEB.md](docs/BETRIEB.md).
+Ersten Administrator anlegen (bei aktiver Anmeldung):
+
+```bash
+docker exec -it event-tracker python -m app.cli create-user christian --role admin
+```
+
+Betrieb auf der Synology oder dem Rootserver (Traefik), GitLab-Pipeline und Sicherung: [docs/BETRIEB.md](docs/BETRIEB.md).
 
 ## Tests
 
