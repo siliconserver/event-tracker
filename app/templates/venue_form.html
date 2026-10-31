@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ 'Spielstätte bearbeiten' if v else 'Neue Spielstätte' }}</h1>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<form method="post" class="card">
+  <label>Allzeitname * <span class="small">(dein dauerhafter Name, z. B. „Waldstadion“)</span></label>
+  <input name="name" required value="{{ v.name if v else '' }}">
+  {% if v %}<p class="small muted">Wird der Allzeitname geändert, bleibt der alte Name als alternativer Name suchbar.</p>{% endif %}
+  <div class="row">
+    <div><label>Stadt</label><input name="city" value="{{ v.city if v and v.city else '' }}"></div>
+    <div><label>Land</label><input name="country" value="{{ v.country if v and v.country else settings.home_country }}"></div>
+    <div><label>Breitengrad (lat)</label><input name="lat" inputmode="decimal" value="{{ v.lat if v and v.lat is not none else '' }}" placeholder="50.0686"></div>
+    <div><label>Längengrad (lon)</label><input name="lon" inputmode="decimal" value="{{ v.lon if v and v.lon is not none else '' }}" placeholder="8.6455"></div>
+  </div>
+  <p class="small muted">Exakte Koordinaten der Spielstätte, z. B. per Rechtsklick in OpenStreetMap („Adresse anzeigen“) oder Google Maps kopieren.</p>
+  <label>Notizen</label><textarea name="notes">{{ v.notes if v and v.notes else '' }}</textarea>
+  <p><button>Speichern</button></p>
+</form>
+{% endblock %}

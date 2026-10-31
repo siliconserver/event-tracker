@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Fotos</h1>
+<div class="card">
+<p>Fotoordner (nur lesend): <code>{{ root }}</code></p>
+<p>Indizierte Fotos: <b>{{ total }}</b>{% if missing %} · <span class="tag lock">{{ missing }} Originale nicht mehr gefunden</span>{% endif %}</p>
+{% if state.running %}<p class="warn">Einlesen läuft … {{ state.scanned }} Dateien geprüft. <a href="/photos">aktualisieren</a></p>
+{% else %}
+{% if state.finished %}<p class="small">Letzter Lauf {{ state.finished.strftime('%d.%m.%Y %H:%M') }}: {{ state.scanned }} geprüft, {{ state.added }} neu, {{ state.moved }} verschoben erkannt, {{ state.missing }} fehlend.</p>{% endif %}
+{% if state.error %}<p class="error">{{ state.error }}</p>{% endif %}
+<form method="post" action="/photos/scan"><button>Fotobestand einlesen</button></form>
+{% endif %}
+<p class="small muted">Die App legt nur Verweise und Vorschaubilder an. Originale werden nie verändert, verschoben oder gelöscht. Verschobene oder umbenannte Dateien werden über ihren Fingerabdruck wiedererkannt.</p>
+</div>
+{% endblock %}

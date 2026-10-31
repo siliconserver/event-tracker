@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ e.display_title }} – Event-Tracker{% endblock %}
+{% block content %}
+<p class="muted small"><a href="/events">Besuche</a> › {{ e.date|d }}</p>
+<h1>{{ e.display_title }}</h1>
+{% if duplicates %}<p class="warn">Mögliche Dublette: am selben Tag in derselben Spielstätte ist auch
+  {% for d in duplicates %}<a href="/events/{{ d.id }}">{{ d.display_title }}</a>{% endfor %} erfasst.</p>{% endif %}
+<div class="grid">
+<div class="card">
+  <p><b>{{ e.date|d }}</b>{% if e.time %} · {{ e.time.strftime('%H:%M') }} Uhr{% endif %} · {{ e.sport.name }}</p>
+  <p><a href="/venues/{{ e.venue.id }}">{{ e.venue.name }}</a>{% if e.venue.city %}, {{ e.venue.city }}{% endif %}{% if e.venue.country %}, {{ e.venue.country }}{% endif %}
+    {% if e.venue_name_at_event and e.venue_name_at_event != e.venue.name %}<br><span class="muted small">damals: {{ e.venue_name_at_event }}</span>{% endif %}</p>
+  {% if e.competition %}<p>{{ e.competition.name }}{% if e.stage %} · {{ e.stage }}{% endif %}{% if e.is_final %} <span class="tag">Finale</span>{% endif %}</p>{% endif %}
+  {% if e.attendance %}<p>Zuschauer: {{ "{:,}".format(e.attendance).replace(",", ".") }}</p>{% endif %}
+  {% if e.weather %}<p>Wetter: {{ e.weather }}</p>{% endif %}
+  {% if e.locked_fields %}<p class="small">{% for f in e.locked_fields %}<span class="tag lock" title="vor Import geschützt">🔒 {{ f }}</span>{% endfor %}
+    <form class="inline" method="post" action="/events/{{ e.id }}/unlock"><button class="link small">Schutz aufheben</button></form></p>{% endif %}
+  <p><a class="btn" href="/events/{{ e.id }}/edit">Bearbeiten</a>
+     <a class="btn secondary" href="/events/{{ e.id }}/research">Recherche / JSON-Import</a></p>
+</div>
+<div class="card" id="besuch"><h2 style="margin-top:0">Mein Besuch</h2>
+<form method="post" action="/events/{{ e.id }}/visit">
+  {% set v = e.visit %}
+  <div class="row">
+    <div><label>Sitzplatz / Block</label><input name="seat" value="{{ v.seat or '' }}"></div>
+    <div><label>Begleitung</label><input name="companions" value="{{ v.companions or '' }}"></div>
+    <div><label>Kosten (€)</label><input name="cost" inputmode="decimal" value="{{ v.cost if v.cost is not none else '' }}"></div>
+  </div>
+  <div class="row">
+    {% for k, label in [('rating_atmosphere','Atmosphäre'),('rating_view','Sicht'),('rating_organisation','Organisation')] %}
+    <div><label>{{ label }} (1–5)</label><select name="{{ k }}"><option value="">–</option>
+      {% for i in range(1,6) %}<option {% if v[k] == i %}selected{% endif %}>{{ i }}</option>{% endfor %}</select></div>
+    {% endfor %}
+    <div><label>Reise</label><select name="trip_id"><option value="">–</option>
+      {% for t in trips %}<option value="{{ t.id }}" {% if v.trip_id == t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+  </div>
+  <label>Persönliches Highlight</label><input name="highlight" value="{{ v.highlight or '' }}">
+  <label>Ticket / Erinnerungsstücke</label><input name="ticket_note" value="{{ v.ticket_note or '' }}">
+  <label>Notizen</label><textarea name="notes">{{ v.notes or '' }}</textarea>
+  <p><button>Besuch speichern</button></p>
+</form></div>
+</div>
+
+<div class="card" id="spiele"><h2 style="margin-top:0">{{ 'Kämpfe' if e.sport.kind == 'fight' else 'Spiele' }} <span class="muted small">(alle gelten als gesehen)</span></h2>
+<datalist id="participants">{% for t in teams %}<option value="{{ t.name }}">{% endfor %}</datalist>
+<table>
+<tr><th>#</th><th>{{ 'Kämpfer A' if e.sport.kind == 'fight' else 'Heim' }}</th><th>{{ 'Kämpfer B' if e.sport.kind == 'fight' else 'Gast' }}</th><th>Ergebnis</th><th></th></tr>
+{% for b in e.bouts %}
+<tr><td>{{ loop.index }}{% if b.label %}<br><span class="muted small">{{ b.label }}</span>{% endif %}</td>
+<td>{% if b.home %}<a href="/participants/{{ b.home.id }}">{{ b.home.name }}</a>{% endif %}</td>
+<td>{% if b.away %}<a href="/participants/{{ b.away.id }}">{{ b.away.name }}</a>{% endif %}</td>
+<td>{% if e.sport.kind == 'fight' %}{% if b.winner %}Sieg {{ b.winner.name }}{% elif b.is_draw %}Unentschieden{% endif %}{% if b.method %} · {{ b.method }}{% endif %}{% if b.round %} · R{{ b.round }}{% endif %}
+    {% else %}<b>{{ b.score }}</b>{% endif %}
+    {% set goals = (b.details or {}).get('goals') or [] %}
+    {% if goals %}<br><span class="small muted">Tore: {% for g in goals %}{{ g.player if g is mapping else g }}{% if g is mapping and g.minute %} ({{ g.minute }}.){% endif %}{{ ', ' if not loop.last }}{% endfor %}</span>{% endif %}</td>
+<td><details><summary class="small">bearbeiten</summary>
+  {% set bout = b %}{% include "_bout_form.html" %}
+  <form method="post" action="/bouts/{{ b.id }}/delete"><button class="danger small">Löschen</button></form>
+</details></td></tr>
+{% endfor %}
+</table>
+<details {% if not e.bouts %}open{% endif %}><summary>{{ 'Kampf' if e.sport.kind == 'fight' else 'Spiel' }} hinzufügen</summary>{% set bout = none %}{% include "_bout_form.html" %}</details>
+</div>
+
+<div class="card" id="fotos"><h2 style="margin-top:0">Fotos</h2>
+{% set back = '/events/' ~ e.id ~ '#fotos' %}{% set links = e.visit.photo_links %}{% include "_gallery.html" %}
+<p><a class="btn secondary" href="/events/{{ e.id }}/photos">Fotos aus dem NAS zuordnen</a></p>
+</div>
+
+<div class="grid">
+<div class="card"><h2 style="margin-top:0">Bericht</h2>{% if e.report %}<p style="white-space:pre-wrap">{{ e.report }}</p>{% else %}<p class="muted">–</p>{% endif %}
+{% if e.open_questions %}<h2>Offene Fragen</h2><p style="white-space:pre-wrap" class="warn">{{ e.open_questions }}</p>{% endif %}</div>
+<div class="card" id="quellen"><h2 style="margin-top:0">Quellen</h2>
+<ul>{% for s in e.sources %}<li>{% if s.url %}<a href="{{ s.url }}" rel="noreferrer noopener" target="_blank">{{ s.title or s.url }}</a>{% else %}{{ s.title }}{% endif %}
+  {% if s.field %}<span class="tag">{{ s.field }}</span>{% endif %}
+  <form class="inline" method="post" action="/sources/{{ s.id }}/delete"><button class="link small">entfernen</button></form></li>
+{% else %}<li class="muted">keine</li>{% endfor %}</ul>
+<form method="post" action="/events/{{ e.id }}/sources" class="row">
+  <input name="url" placeholder="URL"><input name="title" placeholder="Titel"><input name="field" placeholder="für Angabe …"><button>Hinzufügen</button>
+</form></div>
+</div>
+<form method="post" action="/events/{{ e.id }}/delete" onsubmit="return confirm('Besuch samt Spielen, Quellen und Fotozuordnungen löschen? Die Originalfotos bleiben erhalten.')"><button class="danger">Besuch löschen</button></form>
+{% endblock %}

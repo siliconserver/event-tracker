@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Besuche <span class="muted small">({{ events|length }})</span></h1>
+{% include "_filters.html" %}
+<div class="card">{% include "_event_rows.html" %}</div>
+{% endblock %}

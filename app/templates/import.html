@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{% if target %}Recherche für {{ target.display_title }}{% else %}JSON-Import{% endif %}</h1>
+{% if target %}<p class="muted small"><a href="/events/{{ target.id }}">zurück zum Besuch</a></p>{% endif %}
+{% if prompt %}
+<div class="card"><h2 style="margin-top:0">1. Rechercheauftrag</h2>
+<p class="small">In ChatGPT (oder einen anderen Rechercheweg) kopieren. Die Antwort (JSON) unten einfügen.</p>
+<pre class="prompt" id="prompt">{{ prompt }}</pre>
+<button type="button" onclick="navigator.clipboard.writeText(document.getElementById('prompt').innerText)">Kopieren</button></div>
+{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+{% if plans %}
+<div class="card"><h2 style="margin-top:0">Vorschau</h2>
+{% for p in plans %}
+<h3>{{ p.payload.event.date }} · {{ p.payload.event.get('title') or p.payload.event.get('sport') }}</h3>
+{% for w in p.warnings %}<p class="warn">{{ w }}{% for d in p.duplicates %} <a href="/events/{{ d.id }}/research">→ dort ergänzen</a>{% endfor %}</p>{% endfor %}
+<p>Spielstätte: {% if p.venue %}<b>{{ p.venue.name }}</b> (vorhanden){% else %}<b>{{ p.payload.event.venue.name }}</b> <span class="tag">wird neu angelegt</span>{% endif %}</p>
+<table><tr><th>Feld</th><th>Aktuell</th><th>Import</th><th>Aktion</th></tr>
+{% for c in p.changes %}<tr><td>{{ c.field }}</td><td class="small">{{ c.current if c.current is not none else '' }}</td><td class="small">{{ c.new }}</td>
+<td>{% if c.action.startswith('behalten') %}<span class="tag lock">{{ c.action }}</span>{% else %}<span class="tag">{{ c.action }}</span>{% endif %}</td></tr>{% endfor %}
+</table>
+{% if p.bouts_action %}<p>Spiele/Kämpfe: {{ p.bouts_action }}</p>{% endif %}
+<p class="small">Quellen: {{ (p.payload.sources or [])|length }} · Offene Fragen: {{ (p.payload.open_questions or [])|length }}</p>
+{% endfor %}
+<p class="small muted">Persönliche Besuchsdaten (Notizen, Kosten, Bewertungen, Fotos …) werden nie verändert.</p>
+<form method="post" action="/import">
+  <input type="hidden" name="json" value="{{ text }}"><input type="hidden" name="confirm" value="1">
+  {% if target %}<input type="hidden" name="target_id" value="{{ target.id }}">{% endif %}
+  {% if overwrite %}<input type="hidden" name="overwrite" value="1">{% endif %}
+  <button>Übernehmen</button>
+</form></div>
+{% endif %}
+<form method="post" action="/import" class="card">
+  <h2 style="margin-top:0">{{ '2. ' if prompt else '' }}JSON einfügen</h2>
+  {% if target %}<input type="hidden" name="target_id" value="{{ target.id }}">{% endif %}
+  <textarea class="code" name="json" placeholder='{"schema_version": 1, "event": {...}}'>{{ text }}</textarea>
+  {% if target %}<label><input type="checkbox" name="overwrite" value="1" {% if overwrite %}checked{% endif %}> vorhandene (nicht gesperrte) Angaben überschreiben</label>{% endif %}
+  <p><button>Vorschau anzeigen</button></p>
+  {% if not target %}<p class="small muted">Einzelnes Event, Liste oder <code>{"events": [...]}</code> für Sammelimporte. Format: docs/IMPORT_FORMAT.md</p>
+  {% if template %}<details><summary class="small">Vorlage anzeigen</summary><pre class="prompt">{{ template }}</pre></details>{% endif %}{% endif %}
+</form>
+{% endblock %}

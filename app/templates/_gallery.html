@@ -1,0 +1,20 @@
+<div class="gallery">
+{% for pl in links %}
+<figure>
+  <a href="/photo/{{ pl.photo.id }}/1600" target="_blank"><img loading="lazy" src="/photo/{{ pl.photo.id }}/240" alt="{{ pl.caption or '' }}"></a>
+  <figcaption>
+    {% if pl.is_cover %}<span class="tag">Titelbild</span>{% endif %}{% if pl.view %}<span class="tag">{{ pl.view }}</span>{% endif %}{% if pl.photo.missing %}<span class="tag lock">Original fehlt</span>{% endif %}
+    {{ pl.caption or '' }}
+    <details><summary class="small">bearbeiten</summary>
+    <form method="post" action="/photolinks/{{ pl.id }}">
+      <input type="hidden" name="back" value="{{ back }}">
+      <input name="caption" value="{{ pl.caption or '' }}" placeholder="Bildunterschrift">
+      <select name="view"><option value="">–</option>{% for o in ['innen','aussen','sitzplatz'] %}<option {% if pl.view == o %}selected{% endif %}>{{ o }}</option>{% endfor %}</select>
+      <input type="number" name="position" value="{{ pl.position }}" title="Reihenfolge">
+      <label><input type="checkbox" name="is_cover" value="1" {% if pl.is_cover %}checked{% endif %}> Titelbild</label>
+      <button>Speichern</button> <button class="danger" name="action" value="remove" title="Entfernt nur die Zuordnung, nicht das Original">Zuordnung entfernen</button>
+    </form></details>
+  </figcaption>
+</figure>
+{% else %}<p class="muted">Noch keine Fotos zugeordnet.</p>{% endfor %}
+</div>

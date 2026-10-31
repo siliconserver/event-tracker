@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="muted small"><a href="/events/{{ e.id }}">{{ e.display_title }}</a></p>
+<h1>Fotos zuordnen</h1>
+<form method="get" class="filters card"><div><label>Aufnahmedatum: Eventtag ± Tage</label>
+<select name="days">{% for d in [0,1,2,3,7] %}<option {% if d == days %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></div><div><button>Anzeigen</button></div></form>
+<form method="post" action="/events/{{ e.id }}/photos">
+<p>{{ candidates|length }} Fotos zwischen {{ e.date|d }} ± {{ days }} Tag(en). <button>Auswahl zuordnen</button></p>
+<div class="gallery">
+{% for ph in candidates %}
+<figure><label class="pick"><input type="checkbox" name="photo_id" value="{{ ph.id }}" {% if ph.id in linked %}checked disabled{% endif %}>
+<img loading="lazy" src="/photo/{{ ph.id }}/240" alt=""></label>
+<figcaption>{{ ph.taken_at.strftime('%d.%m. %H:%M') if ph.taken_at }} <span class="muted">{{ ph.path.split('/')[-1] }}</span></figcaption></figure>
+{% else %}<p class="muted">Keine Fotos in diesem Zeitraum. Ggf. zuerst unter <a href="/photos">Fotos</a> den Bestand einlesen.</p>{% endfor %}
+</div>
+<p><button>Auswahl zuordnen</button></p>
+</form>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Spielstätten <span class="muted small">({{ venues|length }})</span></h1>
+<form class="filters card" method="get"><div><label>Suche (auch frühere Namen)</label><input name="q" value="{{ q }}" placeholder="z. B. Commerzbank-Arena"></div>
+<div><button>Suchen</button> <a class="btn secondary" href="/venues/new">+ Spielstätte</a></div></form>
+<div class="card"><table>
+<tr><th>Allzeitname</th><th>Ort</th><th class="hide-sm">Frühere/andere Namen</th><th>Besuche</th></tr>
+{% for v in venues %}
+<tr><td><a href="/venues/{{ v.id }}">{{ v.name }}</a>{% if v.lat is none %} <span class="tag lock" title="ohne Koordinaten">📍?</span>{% endif %}</td>
+<td>{{ v.city or '' }}{% if v.country %}, {{ v.country }}{% endif %}</td>
+<td class="hide-sm small muted">{{ v.aliases|map(attribute='name')|join(', ') }}</td>
+<td>{{ counts.get(v.id, 0) }}</td></tr>
+{% else %}<tr><td colspan="4" class="muted">Keine Spielstätten gefunden.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

@@ -1,0 +1,19 @@
+<table>
+<tr><th>Datum</th><th>Event</th><th class="hide-sm">Sportart</th><th>Spielstätte</th><th class="hide-sm">Wettbewerb</th></tr>
+{% for e in events %}
+<tr>
+<td>{{ e.date|d }}</td>
+<td><a href="/events/{{ e.id }}">{{ e.display_title }}</a>
+  {% for b in e.bouts[:1] %}{% if b.score %} <b>{{ b.score }}</b>{% endif %}{% endfor %}
+  {% if e.bouts|length > 1 %}<span class="muted small">({{ e.bouts|length }} {{ 'Kämpfe' if e.sport.kind == 'fight' else 'Spiele' }})</span>{% endif %}
+  {% if e.is_final %}<span class="tag">Finale</span>{% endif %}
+</td>
+<td class="hide-sm">{{ e.sport.name }}</td>
+<td><a href="/venues/{{ e.venue.id }}">{{ e.venue.name }}</a>
+  {% if e.venue_name_at_event and e.venue_name_at_event != e.venue.name %}<br><span class="muted small">damals {{ e.venue_name_at_event }}</span>{% endif %}</td>
+<td class="hide-sm">{{ e.competition.name if e.competition else '' }}{% if e.stage %} <span class="muted small">{{ e.stage }}</span>{% endif %}</td>
+</tr>
+{% else %}
+<tr><td colspan="5" class="muted">Keine Besuche gefunden.</td></tr>
+{% endfor %}
+</table>
