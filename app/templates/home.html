@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Mein Event-Archiv</h1>
+<div class="kpis">
+  <div class="kpi"><b>{{ stats.events }}</b><span>Besuche / Events</span></div>
+  <div class="kpi"><b>{{ stats.bouts }}</b><span>Spiele & Kämpfe gesehen</span></div>
+  <div class="kpi"><b>{{ stats.venues }}</b><span>Spielstätten</span></div>
+  <div class="kpi"><b>{{ stats.countries }}</b><span>Länder</span></div>
+</div>
+{% if on_this_day %}
+<div class="card"><h2 style="margin-top:0">An diesem Tag</h2>
+{% for years_ago, e in on_this_day %}
+<p>Heute vor {{ years_ago }} Jahr{{ 'en' if years_ago != 1 else '' }} warst du bei <a href="/events/{{ e.id }}">{{ e.display_title }}</a> in {{ e.venue.name }}.</p>
+{% endfor %}</div>
+{% endif %}
+<div class="grid">
+<div class="card"><h2 style="margin-top:0">Zuletzt</h2>
+{% for e in recent %}<div><span class="muted small">{{ e.date|d }}</span> <a href="/events/{{ e.id }}">{{ e.display_title }}</a> <span class="muted small">{{ e.venue.name }}</span></div>
+{% else %}<p class="muted">Noch keine Besuche. <a href="/events/new">Ersten Besuch erfassen</a> oder <a href="/import">JSON importieren</a>.</p>{% endfor %}
+</div>
+<div class="card"><h2 style="margin-top:0">Meilensteine</h2>
+{% for d, text, e in milestones %}<div><span class="muted small">{{ d|d }}</span> <b>{{ text }}</b> – <a href="/events/{{ e.id }}">{{ e.display_title }}</a></div>
+{% else %}<p class="muted">Noch keine.</p>{% endfor %}
+<p class="small"><a href="/stats">Alle Statistiken</a>{% for y in stats.by_year[-1:] %} · <a href="/review/{{ y[0] }}">Jahresrückblick {{ y[0] }}</a>{% endfor %}</p>
+</div>
+</div>
+{% endblock %}

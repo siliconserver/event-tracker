@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% macro bars(rows, link=none) %}{% set mx = (rows|map(attribute=1)|max) if rows else 1 %}
+<table>{% for k, n in rows %}<tr><td style="width:40%">{{ k.name if k.name is defined else k }}</td><td><div class="bar" style="width:{{ (n / mx * 100)|round }}%"></div></td><td style="width:3rem">{{ n }}</td></tr>{% else %}<tr><td class="muted">keine Daten</td></tr>{% endfor %}</table>{% endmacro %}
+{% block content %}
+<h1>Statistik</h1>
+{% include "_filters.html" %}
+<div class="kpis">
+  <div class="kpi"><b>{{ s.events }}</b><span>Besuche / Events</span></div>
+  <div class="kpi"><b>{{ s.bouts }}</b><span>Spiele & Kämpfe</span></div>
+  <div class="kpi"><b>{{ s.venues }}</b><span>Spielstätten</span></div>
+  <div class="kpi"><b>{{ s.cities }}</b><span>Städte</span></div>
+  <div class="kpi"><b>{{ s.countries }}</b><span>Länder</span></div>
+  <div class="kpi"><b>{{ s.goals_total }}</b><span>Tore gesehen ({{ s.goals_coverage.text }} Spielen mit Ergebnis)</span></div>
+  <div class="kpi"><b>{{ s.goals_per_game if s.goals_per_game is not none else '–' }}</b><span>Tore pro Spiel</span></div>
+  <div class="kpi"><b>{{ s.cost_total|money if s.cost_coverage.known else "–" }}</b><span>Kosten ({{ s.cost_coverage.text }} Besuchen erfasst)</span></div>
+</div>
+<p class="small muted">Fehlende Angaben werden nicht als 0 gezählt; die Abdeckung steht jeweils dabei.</p>
+<div class="grid">
+  <div class="card"><h2 style="margin-top:0">Nach Jahr</h2>{{ bars(s.by_year) }}{% for y, n in s.by_year|reverse %}<a class="small" href="/review/{{ y }}">Rückblick {{ y }}</a>{{ ' · ' if not loop.last }}{% endfor %}</div>
+  <div class="card"><h2 style="margin-top:0">Nach Sportart</h2>{{ bars(s.by_sport) }}</div>
+  <div class="card"><h2 style="margin-top:0">Spielstätten</h2>{{ bars(s.by_venue[:15]) }}</div>
+  <div class="card"><h2 style="margin-top:0">Länder</h2>{{ bars(s.by_country) }}</div>
+  <div class="card"><h2 style="margin-top:0">Wettbewerbe</h2>{{ bars(s.by_competition[:15]) }}</div>
+  <div class="card"><h2 style="margin-top:0">Persönliche Rekorde</h2>
+    {% for label, text, e in records %}<p><b>{{ label }}:</b> {{ text }}{% if e %} – <a href="/events/{{ e.id }}">{{ e.date|d }}</a>{% endif %}</p>{% else %}<p class="muted">–</p>{% endfor %}
+    {% if s.rating_avg %}<p class="small">Ø Bewertung: {% for k, v in s.rating_avg.items() %}{{ {'rating_atmosphere':'Atmosphäre','rating_view':'Sicht','rating_organisation':'Organisation'}[k] }} {{ v }}{{ ' · ' if not loop.last }}{% endfor %}</p>{% endif %}</div>
+</div>
+<div class="card"><h2 style="margin-top:0">Vereine & Nationalmannschaften</h2>
+<table><tr><th>Team</th><th>Spiele</th><th>S</th><th>U</th><th>N</th><th class="hide-sm">Stadien</th></tr>
+{% for r in s.teams[:30] %}<tr><td><a href="/participants/{{ r.p.id }}">{{ r.p.name }}</a></td><td>{{ r.n }}</td><td>{{ r.w }}</td><td>{{ r.d }}</td><td>{{ r.l }}{% if r.unknown %} <span class="muted small">(+{{ r.unknown }} ?)</span>{% endif %}</td><td class="hide-sm small">{{ r.venues|length }}</td></tr>
+{% else %}<tr><td class="muted">keine</td></tr>{% endfor %}</table></div>
+<div class="grid">
+  <div class="card"><h2 style="margin-top:0">Torreichste Spiele</h2>{% for g, b, e in s.top_scoring %}<p>{{ b.home.name if b.home }} – {{ b.away.name if b.away }} <b>{{ b.score }}</b> <a class="small" href="/events/{{ e.id }}">{{ e.date|d }}</a></p>{% else %}<p class="muted">–</p>{% endfor %}</div>
+  <div class="card"><h2 style="margin-top:0">Häufigste Paarungen</h2>{{ bars(s.pairings) }}</div>
+  <div class="card"><h2 style="margin-top:0">Gesehene Torschützen</h2>{{ bars(s.scorers) }}</div>
+  <div class="card"><h2 style="margin-top:0">Kämpfer</h2>
+    <table>{% for r in s.fighters[:20] %}<tr><td><a href="/participants/{{ r.p.id }}">{{ r.p.name }}</a></td><td>{{ r.n }} Kämpfe</td><td>{{ r.w }} Siege</td></tr>{% else %}<tr><td class="muted">–</td></tr>{% endfor %}</table></div>
+  <div class="card"><h2 style="margin-top:0">Siegmethoden</h2>{{ bars(s.methods) }}</div>
+  <div class="card"><h2 style="margin-top:0">Meilensteine</h2>{% for d, t, e in milestones|reverse %}<p><span class="muted small">{{ d|d }}</span> <b>{{ t }}</b> – <a href="/events/{{ e.id }}">{{ e.display_title }}</a></p>{% else %}<p class="muted">–</p>{% endfor %}</div>
+</div>
+{% endblock %}

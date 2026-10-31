@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% macro val(name, default='') %}{% if e %}{{ e[name] if e[name] is not none else '' }}{% else %}{{ pre.get(name) or default }}{% endif %}{% endmacro %}
+{% block content %}
+<h1>{{ 'Besuch bearbeiten' if e else 'Besuch erfassen' }}</h1>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+{% if e and e.locked_fields %}<p class="warn small">Manuell gepflegte Felder werden bei späteren Importen nicht überschrieben: {{ e.locked_fields|join(', ') }}</p>{% endif %}
+<form method="post" class="card">
+<div class="row">
+  <div><label>Datum *</label><input type="date" name="date" required value="{{ e.date.isoformat() if e else pre.get('date','') }}"></div>
+  <div><label>Uhrzeit</label><input type="time" name="time" value="{{ e.time.strftime('%H:%M') if e and e.time else pre.get('time','') }}"></div>
+  <div><label>Sportart *</label><select name="sport_id" required>
+    {% for s in sports %}<option value="{{ s.id }}" {% if (e and e.sport_id == s.id) or pre.get('sport_id') == s.id|string %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></div>
+</div>
+<div class="row">
+  <div><label>Spielstätte (Allzeitname) *</label><select name="venue_id">
+    <option value="">– neue Spielstätte unten eingeben –</option>
+    {% for v in venues %}<option value="{{ v.id }}" {% if (e and e.venue_id == v.id) or pre.get('venue_id') == v.id|string %}selected{% endif %}>{{ v.name }}{% if v.city %} ({{ v.city }}){% endif %}</option>{% endfor %}</select></div>
+  <div><label>Name der Spielstätte damals</label><input name="venue_name_at_event" value="{{ val('venue_name_at_event') }}" placeholder="z. B. Commerzbank-Arena"></div>
+</div>
+{% if not e %}
+<div class="row">
+  <div><label>… oder neue Spielstätte: Allzeitname</label><input name="new_venue_name" value="{{ pre.get('new_venue_name','') }}"></div>
+  <div><label>Stadt</label><input name="new_venue_city" value="{{ pre.get('new_venue_city','') }}"></div>
+  <div><label>Land</label><input name="new_venue_country" value="{{ pre.get('new_venue_country', settings.home_country) }}"></div>
+</div>
+<p class="small muted">Koordinaten trägst du danach auf der Seite der Spielstätte ein.</p>
+{% endif %}
+<div class="row">
+  <div><label>Wettbewerb</label><input name="competition" list="competitions" value="{{ e.competition.name if e and e.competition else pre.get('competition','') }}"></div>
+  <div><label>Runde / Spieltag</label><input name="stage" value="{{ val('stage') }}"></div>
+  <div><label>&nbsp;</label><label><input type="checkbox" name="is_final" value="1" {% if (e and e.is_final) or pre.get('is_final') %}checked{% endif %}> Finale</label></div>
+</div>
+<datalist id="competitions">{% for c in competitions %}<option value="{{ c.name }}">{% endfor %}</datalist>
+<datalist id="participants">{% for t in teams %}<option value="{{ t.name }}">{% endfor %}</datalist>
+<label>Titel der Veranstaltung (optional, z. B. „OKTAGON 60“)</label><input name="title" value="{{ val('title') }}">
+{% if not e %}
+<div class="row">
+  <div><label>Heim / Kämpfer A</label><input name="home" list="participants" value="{{ pre.get('home','') }}"></div>
+  <div><label>Gast / Kämpfer B</label><input name="away" list="participants" value="{{ pre.get('away','') }}"></div>
+  <div><label>Tore/Punkte Heim</label><input type="number" name="home_score" value="{{ pre.get('home_score','') }}"></div>
+  <div><label>Tore/Punkte Gast</label><input type="number" name="away_score" value="{{ pre.get('away_score','') }}"></div>
+</div>
+<p class="small muted">Weitere Spiele oder Kämpfe fügst du auf der Detailseite hinzu.</p>
+{% endif %}
+<div class="row">
+  <div><label>Zuschauer (nur wenn belegt)</label><input type="number" name="attendance" value="{{ val('attendance') }}"></div>
+  <div><label>Wetter</label><input name="weather" value="{{ val('weather') }}"></div>
+</div>
+<label>Bericht / Zusammenfassung</label><textarea name="report">{{ val('report') }}</textarea>
+<label>Offene Fragen</label><textarea name="open_questions">{{ val('open_questions') }}</textarea>
+<p><button>Speichern</button> {% if e %}<a href="/events/{{ e.id }}">Abbrechen</a>{% endif %}</p>
+</form>
+{% endblock %}

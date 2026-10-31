@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ v.name }} – Event-Tracker{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">{% endblock %}
+{% block content %}
+<p class="muted small"><a href="/venues">Spielstätten</a></p>
+<h1>{{ v.name }}</h1>
+<p>{{ v.city or '' }}{% if v.country %}, {{ v.country }}{% endif %}
+ · <a href="/venues/{{ v.id }}/edit">bearbeiten</a> · <a href="/events/new?venue_id={{ v.id }}">+ Besuch hier</a> · <a href="/events?venue_id={{ v.id }}">in Liste</a></p>
+<div class="kpis">
+  <div class="kpi"><b>{{ events|length }}</b><span>Besuche</span></div>
+  <div class="kpi"><b>{{ events|map(attribute='bouts')|map('length')|sum }}</b><span>Spiele & Kämpfe</span></div>
+  <div class="kpi"><b>{{ events[0].date|d if events else '–' }}</b><span>erster Besuch</span></div>
+  <div class="kpi"><b>{{ events[-1].date|d if events else '–' }}</b><span>letzter Besuch</span></div>
+</div>
+{% if sports %}<p>Sportarten: {% for s in sports %}<span class="tag">{{ s }}</span>{% endfor %}</p>{% endif %}
+<div class="grid">
+<div class="card"><h2 style="margin-top:0">Frühere / alternative Namen</h2>
+<ul>{% for a in v.aliases %}<li>{{ a.name }}{% if a.valid_from or a.valid_to %} <span class="muted small">({{ a.valid_from|d }} – {{ a.valid_to|d }})</span>{% endif %}
+ <form class="inline" method="post" action="/aliases/{{ a.id }}/delete"><button class="link small">entfernen</button></form></li>
+{% else %}<li class="muted">keine</li>{% endfor %}</ul>
+<form method="post" action="/venues/{{ v.id }}/aliases"><div class="row">
+  <div><label>Name</label><input name="name" required></div>
+  <div><label>gültig von</label><input type="date" name="valid_from"></div>
+  <div><label>bis</label><input type="date" name="valid_to"></div></div>
+  <p><button>Namen hinzufügen</button></p></form>
+</div>
+<div class="card">{% if v.lat is not none %}<div id="vmap" style="height:240px;border-radius:8px"></div>
+{% else %}<p class="warn">Keine Koordinaten – die Spielstätte erscheint nicht auf der Karte. <a href="/venues/{{ v.id }}/edit">Jetzt eintragen</a></p>{% endif %}</div>
+</div>
+<div class="card"><h2 style="margin-top:0">Bilder <span class="muted small">(Spielstätte und Besuche)</span></h2>
+{% set back = '/venues/' ~ v.id %}{% include "_gallery.html" %}
+<details><summary class="small">Innen-/Außenbild per Pfad hinzufügen</summary>
+<form method="post" action="/venues/{{ v.id }}/photos" class="row">
+  <div><label>Pfad relativ zum Fotoordner</label><input name="path" placeholder="2023/Frankfurt/IMG_1234.HEIC"></div>
+  <div><label>Art</label><select name="view"><option value="aussen">außen</option><option value="innen">innen</option></select></div>
+  <div><label>Bildunterschrift</label><input name="caption"></div>
+  <div><label>&nbsp;</label><button>Hinzufügen</button></div></form></details>
+</div>
+<div class="card"><h2 style="margin-top:0">Besuche hier</h2>{% include "_event_rows.html" %}</div>
+<details class="card"><summary>Dublette zusammenführen</summary>
+<form method="post" action="/venues/{{ v.id }}/merge" onsubmit="return confirm('Diese Spielstätte in die gewählte überführen? Namen werden als alternative Namen übernommen.')">
+<p class="small">Alle Besuche und Fotos dieser Spielstätte werden der gewählten zugeordnet; „{{ v.name }}“ wird dort alternativer Name.</p>
+<select name="target_id" required><option value="">Ziel wählen …</option>{% for o in all_venues if o.id != v.id %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}</select> <button class="danger">Zusammenführen</button></form></details>
+{% endblock %}
+{% block scripts %}{% if v.lat is not none %}
+<script src="/static/vendor/leaflet/leaflet.js"></script>
+<script>
+const m = L.map('vmap').setView([{{ v.lat }}, {{ v.lon }}], 15);
+L.tileLayer({{ settings.tile_url|tojson }}, {maxZoom: 19, attribution: {{ settings.tile_attribution|tojson }}}).addTo(m);
+L.marker([{{ v.lat }}, {{ v.lon }}]).addTo(m);
+</script>{% endif %}{% endblock %}

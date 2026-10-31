@@ -1,0 +1,28 @@
+<form method="post" action="/events/{{ e.id }}/bouts">
+{% if bout %}<input type="hidden" name="bout_id" value="{{ bout.id }}">{% endif %}
+<div class="row">
+  <div><label>Bezeichnung</label><input name="label" value="{{ bout.label if bout and bout.label else '' }}" placeholder="{{ 'Hauptkampf' if e.sport.kind == 'fight' else '' }}"></div>
+  <div><label>{{ 'Kämpfer A' if e.sport.kind == 'fight' else 'Heim' }}</label><input name="home" list="participants" value="{{ bout.home.name if bout and bout.home else '' }}"></div>
+  <div><label>{{ 'Kämpfer B' if e.sport.kind == 'fight' else 'Gast' }}</label><input name="away" list="participants" value="{{ bout.away.name if bout and bout.away else '' }}"></div>
+</div>
+{% if e.sport.kind == 'fight' %}
+<div class="row">
+  <div><label>Sieger</label><select name="winner"><option value="">unbekannt</option>
+    <option value="home" {% if bout and bout.winner_id and bout.winner_id == bout.home_id %}selected{% endif %}>Kämpfer A</option>
+    <option value="away" {% if bout and bout.winner_id and bout.winner_id == bout.away_id %}selected{% endif %}>Kämpfer B</option>
+    <option value="draw" {% if bout and bout.is_draw %}selected{% endif %}>Unentschieden</option></select></div>
+  <div><label>Methode</label><input name="method" list="methods" value="{{ bout.method if bout and bout.method else '' }}"></div>
+  <div><label>Runde</label><input type="number" name="round" value="{{ bout.round if bout and bout.round else '' }}"></div>
+</div>
+<datalist id="methods"><option value="KO/TKO"><option value="Submission"><option value="Punktsieg"><option value="Disqualifikation"><option value="No Contest"></datalist>
+{% else %}
+<div class="row">
+  <div><label>Tore/Punkte Heim</label><input type="number" name="home_score" value="{{ bout.home_score if bout and bout.home_score is not none else '' }}"></div>
+  <div><label>Tore/Punkte Gast</label><input type="number" name="away_score" value="{{ bout.away_score if bout and bout.away_score is not none else '' }}"></div>
+</div>
+<label>Torschützen (einer pro Zeile)</label>
+<textarea name="scorers" style="min-height:3rem">{% if bout %}{% for g in (bout.details or {}).get('goals') or [] %}{{ g.player if g is mapping else g }}
+{% endfor %}{% endif %}</textarea>
+{% endif %}
+<p><button>{{ 'Speichern' if bout else 'Hinzufügen' }}</button></p>
+</form>

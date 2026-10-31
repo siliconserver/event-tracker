@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Event-Tracker{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+{% block head %}{% endblock %}
+</head>
+<body>
+<header><nav>
+  <a class="brand" href="/">Event-Tracker</a>
+  <a href="/events">Besuche</a>
+  <a href="/venues">Spielstätten</a>
+  <a href="/map">Karte</a>
+  <a href="/stats">Statistik</a>
+  <a href="/trips">Reisen</a>
+  <a href="/import">Import</a>
+  <a href="/photos">Fotos</a>
+  <a href="/events/new">+ Besuch</a>
+  {% if settings.app_password %}<form method="post" action="/logout"><button class="link" style="color:#fff">Abmelden</button></form>{% endif %}
+</nav></header>
+<main>{% block content %}{% endblock %}</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

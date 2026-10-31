@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ p.name }} <span class="muted small">{{ 'Verein/Team' if p.kind == 'team' else 'Sportler/Kämpfer' }}</span></h1>
+<div class="kpis">
+  <div class="kpi"><b>{{ events|length }}</b><span>Events gesehen</span></div>
+  {% for r in stats.teams if r.p.id == p.id %}
+  <div class="kpi"><b>{{ r.w }}–{{ r.d }}–{{ r.l }}</b><span>S–U–N{% if r.unknown %} ({{ r.unknown }} ohne Ergebnis){% endif %}</span></div>
+  <div class="kpi"><b>{{ r.venues|length }}</b><span>Spielstätten</span></div>
+  {% endfor %}
+  {% for r in stats.fighters if r.p.id == p.id %}
+  <div class="kpi"><b>{{ r.w }} / {{ r.n }}</b><span>Siege / Kämpfe gesehen</span></div>
+  {% endfor %}
+</div>
+<p><a href="/events?team_id={{ p.id }}&role=home">Heimspiele</a> · <a href="/events?team_id={{ p.id }}&role=away">Auswärtsspiele</a></p>
+<div class="card">{% include "_event_rows.html" %}</div>
+<details class="card"><summary>Bearbeiten / alternative Schreibweisen</summary>
+<form method="post" action="/participants/{{ p.id }}/edit">
+<label>Name</label><input name="name" value="{{ p.name }}">
+<label>Alternative Schreibweisen (kommagetrennt)</label><input name="aliases" value="{{ p.aliases or '' }}" placeholder="1. FC Kaiserslautern, FCK, Lautern">
+<div class="row"><div><label>Land</label><input name="country" value="{{ p.country or '' }}"></div>
+<div><label>&nbsp;</label><label><input type="checkbox" name="is_national" value="1" {% if p.is_national %}checked{% endif %}> Nationalmannschaft</label></div></div>
+<p><button>Speichern</button></p></form>
+<form method="post" action="/participants/{{ p.id }}/merge" onsubmit="return confirm('Zusammenführen?')">
+<label>Dublette: in folgenden Eintrag überführen</label>
+<select name="target_id" required><option value="">…</option>{% for o in all %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}</select>
+<p><button class="danger">Zusammenführen</button></p></form>
+</details>
+{% endblock %}

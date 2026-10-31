@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Jahresrückblick {{ year }}</h1>
+<p>{% for y in years %}<a href="/review/{{ y }}">{{ y }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>
+<div class="kpis">
+  <div class="kpi"><b>{{ s.events }}</b><span>Besuche</span></div>
+  <div class="kpi"><b>{{ s.bouts }}</b><span>Spiele & Kämpfe</span></div>
+  <div class="kpi"><b>{{ new_venues|length }}</b><span>neue Spielstätten</span></div>
+  <div class="kpi"><b>{{ s.countries }}</b><span>Länder</span></div>
+</div>
+{% if covers %}<div class="card"><h2 style="margin-top:0">Lieblingsbilder</h2><div class="gallery">
+{% for pl in covers %}<figure><a href="/events/{{ pl.visit.event_id }}"><img loading="lazy" src="/photo/{{ pl.photo.id }}/240" alt=""></a><figcaption>{{ pl.caption or '' }}</figcaption></figure>{% endfor %}</div></div>{% endif %}
+<div class="grid">
+<div class="card"><h2 style="margin-top:0">Neue Spielstätten</h2><ul>{% for v in new_venues %}<li><a href="/venues/{{ v.id }}">{{ v.name }}</a> <span class="muted small">{{ v.city or '' }}</span></li>{% else %}<li class="muted">keine</li>{% endfor %}</ul></div>
+<div class="card"><h2 style="margin-top:0">Länder</h2><ul>{% for c, n in s.by_country %}<li>{{ c }} ({{ n }})</li>{% else %}<li class="muted">–</li>{% endfor %}</ul></div>
+<div class="card"><h2 style="margin-top:0">Highlights</h2>{% for e in highlights %}<p><a href="/events/{{ e.id }}">{{ e.date|d }}</a>: {{ e.visit.highlight }}</p>{% else %}<p class="muted">–</p>{% endfor %}</div>
+</div>
+<div class="card"><h2 style="margin-top:0">Alle Besuche</h2>{% include "_event_rows.html" %}</div>
+{% endblock %}

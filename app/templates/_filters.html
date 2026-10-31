@@ -1,0 +1,21 @@
+<form class="filters card" method="get">
+  <div><label>Suche</label><input name="q" value="{{ f.q or '' }}" placeholder="Team, Stadion, Notiz …"></div>
+  <div><label>Sportart</label><select name="sport_id"><option value="">alle</option>
+    {% for s in sports %}<option value="{{ s.id }}" {% if f.sport_id == s.id|string %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></div>
+  <div><label>Jahr</label><select name="year"><option value="">alle</option>
+    {% for y in years %}<option {% if f.year == y|string %}selected{% endif %}>{{ y }}</option>{% endfor %}</select></div>
+  <div><label>Land</label><select name="country"><option value="">alle</option>
+    {% for c in countries %}<option {% if f.country == c %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+  <div><label>Wettbewerb</label><select name="competition_id"><option value="">alle</option>
+    {% for c in competitions %}<option value="{{ c.id }}" {% if f.competition_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+  <div><label>Verein / Kämpfer</label><select name="team_id"><option value="">alle</option>
+    {% for t in teams %}<option value="{{ t.id }}" {% if f.team_id == t.id|string %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+  <div><label>Rolle</label><select name="role"><option value="">beliebig</option>
+    <option value="home" {% if f.role == 'home' %}selected{% endif %}>Heim</option>
+    <option value="away" {% if f.role == 'away' %}selected{% endif %}>Auswärts</option></select></div>
+  <div><label>Von</label><input type="date" name="date_from" value="{{ f.date_from or '' }}"></div>
+  <div><label>Bis</label><input type="date" name="date_to" value="{{ f.date_to or '' }}"></div>
+  <div><label><input type="checkbox" name="abroad" value="1" {% if f.abroad %}checked{% endif %}> nur Ausland</label>
+       <label><input type="checkbox" name="final" value="1" {% if f.final %}checked{% endif %}> nur Finals</label></div>
+  <div><button>Filtern</button> <a href="?">zurücksetzen</a></div>
+</form>

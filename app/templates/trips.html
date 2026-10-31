@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Reisen</h1>
+<form method="post" action="/trips" class="card row">
+  <div><label>Name</label><input name="name" required placeholder="z. B. Groundhopping Prag 2024"></div>
+  <div><label>Gemeinsame Reisekosten (€)</label><input name="cost" inputmode="decimal"></div>
+  <div><label>Notizen</label><input name="notes"></div>
+  <div><label>&nbsp;</label><button>Reise anlegen</button></div>
+</form>
+<p class="small muted">Besuche ordnest du einer Reise auf der Detailseite des Besuchs zu (Abschnitt „Mein Besuch“).</p>
+{% for t in trips %}
+<div class="card"><h2 style="margin-top:0">{{ t.name }}</h2>
+<p>{% if t.cost is not none %}Reisekosten: {{ t.cost|money }}{% endif %}
+ {% set ec = t.visits|map(attribute='cost')|reject('none')|sum %}{% if ec %} · Eintritt/Besuchskosten: {{ ec|money }}{% endif %}</p>
+<ul>{% for v in t.visits|sort(attribute='event.date') %}<li>{{ v.event.date|d }} <a href="/events/{{ v.event.id }}">{{ v.event.display_title }}</a> <span class="muted small">{{ v.event.venue.name }}</span></li>
+{% else %}<li class="muted">noch keine Besuche</li>{% endfor %}</ul>
+<details><summary class="small">bearbeiten</summary><form method="post" action="/trips/{{ t.id }}/edit" class="row">
+<input name="name" value="{{ t.name }}"><input name="cost" value="{{ t.cost if t.cost is not none else '' }}"><input name="notes" value="{{ t.notes or '' }}"><button>Speichern</button></form></details>
+</div>
+{% endfor %}
+{% endblock %}
