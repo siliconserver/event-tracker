@@ -3,7 +3,8 @@
 Persönliches Archiv tatsächlich besuchter Sportveranstaltungen und Spielstätten
 (Groundhopping): Fußball, MMA (z. B. Oktagon), später NFL. Selbst gehostet als
 Docker-Container auf der Synology DS420+ (im VPN, ohne Anmeldung) oder auf einem Rootserver
-hinter Traefik (mit Login, TOTP-2FA und Rollen). Build über GitLab CI.
+hinter Traefik (mit Login, TOTP-2FA und Rollen). Das Image baut GitHub Actions, es liegt öffentlich unter
+`ghcr.io/siliconserver/event-tracker`.
 
 Das vollständige Konzept mit allen Entscheidungen steht in [docs/KONZEPT.md](docs/KONZEPT.md).
 
@@ -63,7 +64,7 @@ Ersten Administrator anlegen (bei aktiver Anmeldung):
 docker exec -it event-tracker python -m app.cli create-user christian --role admin
 ```
 
-Betrieb auf der Synology oder dem Rootserver (Traefik), GitLab-Pipeline und Sicherung: [docs/BETRIEB.md](docs/BETRIEB.md).
+Betrieb auf der Synology oder dem Rootserver (Traefik), Image-Build und Sicherung: [docs/BETRIEB.md](docs/BETRIEB.md).
 
 ## Tests
 

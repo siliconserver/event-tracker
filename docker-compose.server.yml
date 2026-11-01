@@ -1,14 +1,13 @@
 # Betrieb auf einem Rootserver hinter einem bestehenden Traefik (v2/v3).
 # Die App ist nur über Traefik erreichbar (kein veröffentlichter Port), HTTPS macht Traefik.
 #
-#   DOMAIN=events.example.de EVENT_TRACKER_IMAGE=registry.gitlab.com/<gruppe>/event-tracker:latest \
-#     docker compose -f docker-compose.server.yml up -d
+#   DOMAIN=events.example.de docker compose -f docker-compose.server.yml up -d
 #   docker exec -it event-tracker python -m app.cli create-user christian --role admin
 #
 # Details: docs/BETRIEB.md
 services:
   event-tracker:
-    image: ${EVENT_TRACKER_IMAGE:-registry.gitlab.com/CHANGE-ME/event-tracker:latest}
+    image: ${EVENT_TRACKER_IMAGE:-ghcr.io/siliconserver/event-tracker:latest}
     container_name: event-tracker
     restart: unless-stopped
     environment:

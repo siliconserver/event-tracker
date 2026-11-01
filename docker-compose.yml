@@ -2,8 +2,8 @@
 # Details: docs/BETRIEB.md
 services:
   event-tracker:
-    # Von GitLab CI gebautes Image. Für einen lokalen Build stattdessen `build: .` verwenden.
-    image: ${EVENT_TRACKER_IMAGE:-registry.gitlab.com/CHANGE-ME/event-tracker:latest}
+    # Von GitHub Actions gebautes, öffentliches Image. Für einen lokalen Build stattdessen `build: .` verwenden.
+    image: ${EVENT_TRACKER_IMAGE:-ghcr.io/siliconserver/event-tracker:latest}
     container_name: event-tracker
     restart: unless-stopped
     # UID:GID des NAS-Benutzers, dem /volume1/docker/event-tracker gehört (`id` per SSH)

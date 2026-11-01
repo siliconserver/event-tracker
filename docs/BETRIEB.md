@@ -1,4 +1,4 @@
-# Betrieb: Docker auf der Synology DS420+ oder einem Rootserver, Build mit GitLab
+# Betrieb: Docker auf der Synology DS420+ oder einem Rootserver, Image aus der GitHub Container Registry
 
 ## Überblick
 
@@ -9,47 +9,34 @@
 - **Öffentlich erreichbar** (Rootserver mit Traefik oder Synology Reverse Proxy): Anmeldung mit
   Benutzern, 2FA per TOTP und Rollen (`docker-compose.server.yml`).
 
-## Image bauen (GitLab)
+## Image bauen (GitHub Actions → ghcr.io)
 
-`.gitlab-ci.yml` läuft bei jedem Push nach GitLab:
+Das Image liegt öffentlich unter **`ghcr.io/siliconserver/event-tracker`**; zum Herunterladen
+braucht es kein `docker login`.
 
-1. **test**: `pytest` in `python:3.13-slim`.
-2. **build-image**: baut das Image für `linux/amd64` (DS420+ und Rootserver), startet es kurz
-   und prüft `/health` (Rauchtest), dann Upload in die GitLab Container Registry des Projekts.
+`.github/workflows/docker-image.yml` läuft automatisch:
 
-| Auslöser | Tags in der Registry |
+1. **test**: `pytest` mit Python 3.13.
+2. **image**: baut für `linux/amd64` (DS420+ und Rootserver), startet den Container kurz und
+   prüft `/health` (Rauchtest). Nur wenn das klappt, wird veröffentlicht.
+
+| Auslöser | Tags |
 |---|---|
-| Push auf den Standard-Branch (`main`) | `:latest`, `:<kurzer-commit>` |
-| Git-Tag `v1.2.3` | `:1.2.3`, `:1.2`, `:<kurzer-commit>` |
-| anderer Branch | nichts, das Image wird nur gebaut und getestet |
+| Push auf `main` | `:latest`, `:sha-<kurzer-commit>` |
+| Git-Tag `v1.2.3` | `:1.2.3`, `:1.2`, `:sha-<kurzer-commit>` |
+| Pull Request | nichts, nur bauen und testen |
 
-Das zuletzt veröffentlichte `:latest` dient als Schicht-Cache; ohne Änderung an
-`requirements.txt` dauert ein Build daher nur Sekunden.
+Secrets sind nicht nötig, der Push läuft mit dem automatischen `GITHUB_TOKEN`. Der Build-Cache
+liegt im GitHub-Actions-Cache, ohne Änderung an `requirements.txt` geht ein Build schnell.
 
-### Einrichtung (einmalig)
+**Einmalig nach dem ersten Lauf:** Neue Pakete sind bei GitHub zunächst privat. Auf
+github.com → Profil → *Packages* → `event-tracker` → *Package settings* → *Danger Zone* →
+*Change visibility* → **Public**. Ab dann ist jede neue Version ohne Anmeldung abrufbar.
+Achtung: Wer das Image zieht, sieht den Python-Quellcode der App (nicht die Daten, die liegen
+nur im Volume `/data`).
 
-1. **GitLab-Projekt** anlegen (leer, ohne README), z. B. `gitlab.com/<gruppe>/event-tracker`.
-   Container Registry ist dort standardmäßig an (Einstellungen → Allgemein → Sichtbarkeit).
-2. **Runner**: Auf gitlab.com reichen die Shared Runner (Docker-in-Docker ist dort erlaubt).
-   Bei eigenem GitLab/eigenem Runner: Docker-Executor mit `privileged = true` in der
-   `config.toml`, sonst startet der `docker:dind`-Dienst nicht.
-3. **Code von GitHub nach GitLab bringen**. Das Pull-Mirroring von GitLab gibt es nur in den
-   kostenpflichtigen Stufen, deshalb pusht stattdessen die GitHub Action
-   `.github/workflows/mirror-to-gitlab.yml` bei jedem Push auf `main` und jedem `v*`-Tag:
-   - In GitLab: Einstellungen → Zugriffstoken → Projekt-Access-Token, Rolle *Maintainer*,
-     Berechtigung `write_repository`.
-   - In GitHub (Settings → Secrets and variables → Actions): Secret `GITLAB_MIRROR_TOKEN` mit
-     dem Token, Variable `GITLAB_REPO` mit `gitlab.com/<gruppe>/event-tracker`.
-   - Erster Lauf: Actions → „Nach GitLab spiegeln“ → *Run workflow*.
-   Ohne beide Einträge tut die Action nichts. Wer ganz nach GitLab umzieht, löscht sie einfach.
-4. **Zugang für NAS und Server**: In GitLab ein Deploy-Token mit `read_registry` anlegen und auf
-   beiden Maschinen einmal `docker login registry.gitlab.com` damit ausführen.
-5. **Aufräumen** (optional): Einstellungen → Pakete und Registrys → Bereinigungsrichtlinie,
-   z. B. nur die letzten 10 Commit-Tags behalten, `latest` und Versionen (`^\d+\.\d+`) nie löschen.
-
-Version veröffentlichen: `git tag v1.0.0 && git push origin v1.0.0` (auf GitHub); der Tag
-wird gespiegelt und als `:1.0.0` gebaut. Wer feste Stände statt `latest` betreiben will,
-trägt diesen Tag in `EVENT_TRACKER_IMAGE` ein.
+Version veröffentlichen: `git tag v1.0.0 && git push origin v1.0.0`. Wer feste Stände statt
+`latest` betreiben will, trägt diesen Tag in `EVENT_TRACKER_IMAGE` ein.
 
 ## Auf dem NAS starten
 
@@ -58,11 +45,9 @@ trägt diesen Tag in `EVENT_TRACKER_IMAGE` ein.
    `docker-compose.yml` bei `user:` eintragen (Synology-Standard oft `1026:100`).
 3. In `docker-compose.yml` den Fotopfad prüfen (Standard `/volume1/photo` bzw. der
    `Photos`-Ordner in den Benutzer-Homes, z. B. `/volume1/homes/christian/Photos`).
-4. Bei privater Registry einmalig anmelden: `docker login registry.gitlab.com`
-   (Deploy-Token mit `read_registry`).
-5. Container Manager → Projekt → Erstellen → `docker-compose.yml` hochladen, oder per SSH:
-   `EVENT_TRACKER_IMAGE=registry.gitlab.com/<gruppe>/event-tracker:latest docker compose up -d`
-6. Aufruf im VPN: `http://<nas-ip>:8085`
+4. Container Manager → Projekt → Erstellen → `docker-compose.yml` hochladen, oder per SSH:
+   `docker compose up -d` (das Image `ghcr.io/siliconserver/event-tracker:latest` ist voreingestellt)
+5. Aufruf im VPN: `http://<nas-ip>:8085`
 
 Aktualisieren: `docker compose pull && docker compose up -d` (oder im Container Manager
 „Projekt → Aktion → Erstellen“).
@@ -95,8 +80,7 @@ Die App veröffentlicht keinen Port, HTTPS und HSTS kommen von Traefik.
 
 ```bash
 mkdir -p data && sudo chown 1000:1000 data
-DOMAIN=events.example.de EVENT_TRACKER_IMAGE=registry.gitlab.com/<gruppe>/event-tracker:latest \
-  docker compose -f docker-compose.server.yml up -d
+DOMAIN=events.example.de docker compose -f docker-compose.server.yml up -d
 docker exec -it event-tracker python -m app.cli create-user christian --role admin
 ```
 
