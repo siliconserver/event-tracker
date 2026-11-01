@@ -572,6 +572,7 @@ Im damaligen Gespräch wurde die NAS-Hardware als Intel Celeron J4025 mit zwei K
 - Lokale KI als spätere Möglichkeit.
 - **Neue Entscheidung (31.10.2026):** Betrieb als Docker-Container auf dem NAS.
 - **Neue Entscheidung (31.10.2026):** Build später über GitLab (CI/CD).
+- **Neue Entscheidung (01.11.2026):** Statt GitLab baut GitHub Actions das Image und veröffentlicht es öffentlich (ohne Login) in der GitHub Container Registry `ghcr.io/siliconserver/event-tracker`. Ersetzt die GitLab-Entscheidung vom 31.10.2026.
 
 ### 3.3 Vorgeschlagene Architekturbausteine
 
