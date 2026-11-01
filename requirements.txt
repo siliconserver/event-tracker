@@ -6,3 +6,4 @@ python-multipart==0.0.32
 itsdangerous==2.2.0
 pillow==13.0.0
 pillow_heif==1.8.1
+qrcode==8.2

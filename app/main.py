@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import hmac
 import json
 import secrets
 from pathlib import Path
@@ -16,6 +15,8 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import db as dbmod
 from . import importer, photos, stats
+from .access import check_access
+from .auth_routes import register_auth_routes
 from .config import settings
 from .db import get_db
 from .models import (
@@ -80,15 +81,18 @@ def create_app(database_url: str | None = None) -> FastAPI:
     app = FastAPI(title="Event-Tracker", docs_url=None, redoc_url=None)
 
     @app.middleware("http")
-    async def auth(request: Request, call_next):
-        open_paths = ("/login", "/static", "/health")
-        if settings.app_password and not request.url.path.startswith(open_paths):
-            if not request.session.get("auth"):
-                return RedirectResponse("/login", 303)
-        return await call_next(request)
+    async def security(request: Request, call_next):
+        blocked = check_access(request)
+        response = blocked if blocked is not None else await call_next(request)
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "same-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        return response
 
-    app.add_middleware(SessionMiddleware, secret_key=_secret_key(), max_age=60 * 60 * 24 * 90,
-                       same_site="lax")
+    app.add_middleware(SessionMiddleware, secret_key=_secret_key(),
+                       max_age=60 * 60 * 24 * settings.session_days, same_site="lax",
+                       https_only=settings.cookie_secure, session_cookie="et_session")
     app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
     register_routes(app)
     return app
@@ -130,25 +134,7 @@ EVENT_FORM_FIELDS = ("date", "time", "title", "sport_id", "venue_id", "venue_nam
 
 def register_routes(app: FastAPI) -> None:  # noqa: C901 - bewusst eine Routing-Datei
 
-    # ---------- Anmeldung ----------
-    @app.get("/login", response_class=HTMLResponse)
-    def login_form(request: Request):
-        return render(request, "login.html", error=None)
-
-    @app.post("/login")
-    async def login(request: Request):
-        form = await request.form()
-        if settings.app_password and hmac.compare_digest(
-            str(form.get("password", "")), settings.app_password
-        ):
-            request.session["auth"] = True
-            return redirect("/")
-        return render(request, "login.html", error="Falsches Passwort")
-
-    @app.post("/logout")
-    def logout(request: Request):
-        request.session.clear()
-        return redirect("/login")
+    register_auth_routes(app, render, redirect)
 
     @app.get("/health")
     def health():

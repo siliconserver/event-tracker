@@ -1,0 +1,47 @@
+# Betrieb auf einem Rootserver hinter einem bestehenden Traefik (v2/v3).
+# Die App ist nur über Traefik erreichbar (kein veröffentlichter Port), HTTPS macht Traefik.
+#
+#   DOMAIN=events.example.de EVENT_TRACKER_IMAGE=registry.gitlab.com/<gruppe>/event-tracker:latest \
+#     docker compose -f docker-compose.server.yml up -d
+#   docker exec -it event-tracker python -m app.cli create-user christian --role admin
+#
+# Details: docs/BETRIEB.md
+services:
+  event-tracker:
+    image: ${EVENT_TRACKER_IMAGE:-registry.gitlab.com/CHANGE-ME/event-tracker:latest}
+    container_name: event-tracker
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Berlin
+      HOME_COUNTRY: Deutschland
+      AUTH_ENABLED: "true"
+      REQUIRE_2FA: "true"
+      COOKIE_SECURE: "true"
+      # Traefik setzt X-Forwarded-For; die App ist nur im Traefik-Netz erreichbar,
+      # daher dürfen die Proxy-Header aller Absender im Netz gelten (echte Client-IP für die Login-Bremse).
+      FORWARDED_ALLOW_IPS: "*"
+    # Das Datenverzeichnis muss dieser UID gehören: mkdir -p data && sudo chown 1000:1000 data
+    user: "${PUID:-1000}:${PGID:-1000}"
+    volumes:
+      - ./data:/data
+      # Fotos sind auf dem Server optional. Ohne Volume bleibt die Fotofunktion leer.
+      # - /srv/fotos:/photos:ro
+    networks:
+      - traefik
+    mem_limit: 512m
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-traefik}
+      - traefik.http.routers.event-tracker.rule=Host(`${DOMAIN:?DOMAIN setzen}`)
+      - traefik.http.routers.event-tracker.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.event-tracker.tls=true
+      - traefik.http.routers.event-tracker.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      - traefik.http.routers.event-tracker.middlewares=event-tracker-headers
+      - traefik.http.middlewares.event-tracker-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.event-tracker-headers.headers.stsIncludeSubdomains=true
+      - traefik.http.services.event-tracker.loadbalancer.server.port=8000
+
+networks:
+  traefik:
+    name: ${TRAEFIK_NETWORK:-traefik}
+    external: true

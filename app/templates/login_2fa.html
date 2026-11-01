@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:380px;margin:3rem auto">
+<h1>Bestätigungscode</h1>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<form method="post" action="/login/2fa">
+<label>6-stelliger Code aus der Authenticator-App</label>
+<input name="code" inputmode="numeric" autocomplete="one-time-code" autofocus required maxlength="14">
+<p class="small muted">Kein Zugriff aufs Handy? Einen Wiederherstellungscode (XXXXXX-XXXXXX) eingeben.</p>
+<p><button>Anmelden</button> <a href="/login">abbrechen</a></p></form>
+</div>
+{% endblock %}

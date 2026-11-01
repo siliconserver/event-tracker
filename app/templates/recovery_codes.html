@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Wiederherstellungscodes</h1>
+<div class="card">
+<p class="warn">Diese Codes werden nur jetzt angezeigt. Sicher aufbewahren (z. B. im Passwortmanager). Jeder Code funktioniert einmal, falls das Handy fehlt.</p>
+<ul class="codes">{% for c in codes %}<li>{{ c }}</li>{% endfor %}</ul>
+<p><a class="btn" href="/">Weiter</a></p>
+</div>
+{% endblock %}

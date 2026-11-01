@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Benutzer</h1>
+{% if msg %}<p class="warn">{{ msg }}</p>{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<form method="post" action="/users" class="card row">
+  <div><label>Benutzername</label><input name="username" required autocomplete="off"></div>
+  <div><label>Startpasswort (mind. 10 Zeichen)</label><input type="password" name="password" required minlength="10" autocomplete="new-password"></div>
+  <div><label>Rolle</label><select name="role">{% for k, v in roles.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+  <div><label>&nbsp;</label><button>Anlegen</button></div>
+</form>
+<div class="card"><table>
+<tr><th>Benutzer</th><th>Rolle</th><th>2FA</th><th class="hide-sm">Letzter Login</th><th>Aktionen</th></tr>
+{% for u in users %}
+<tr><td>{{ u.username }}{% if not u.active %} <span class="tag lock">deaktiviert</span>{% endif %}{% if u.locked_until %} <span class="tag lock">gesperrt bis {{ u.locked_until.strftime('%H:%M') }}</span>{% endif %}</td>
+<td><form method="post" action="/users/{{ u.id }}" class="inline"><input type="hidden" name="action" value="role">
+  <select name="role" onchange="this.form.submit()">{% for k, v in roles.items() %}<option value="{{ k }}" {% if u.role == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></form></td>
+<td>{{ 'aktiv' if u.totp_enabled else 'nein' }}</td>
+<td class="hide-sm small">{{ u.last_login.strftime('%d.%m.%Y %H:%M') if u.last_login else '–' }}</td>
+<td><details><summary class="small">mehr</summary>
+  <form method="post" action="/users/{{ u.id }}"><input type="hidden" name="action" value="password">
+    <input type="password" name="password" placeholder="neues Passwort" minlength="10" autocomplete="new-password"><button class="secondary small">Passwort setzen</button></form>
+  {% if u.totp_enabled %}<form method="post" action="/users/{{ u.id }}"><input type="hidden" name="action" value="reset2fa"><button class="secondary small">2FA zurücksetzen</button></form>{% endif %}
+  {% if u.locked_until %}<form method="post" action="/users/{{ u.id }}"><input type="hidden" name="action" value="unlock"><button class="secondary small">Entsperren</button></form>{% endif %}
+  <form method="post" action="/users/{{ u.id }}"><input type="hidden" name="action" value="toggle"><button class="secondary small">{{ 'Deaktivieren' if u.active else 'Aktivieren' }}</button></form>
+  <form method="post" action="/users/{{ u.id }}" onsubmit="return confirm('Benutzer löschen?')"><input type="hidden" name="action" value="delete"><button class="danger small">Löschen</button></form>
+</details></td></tr>
+{% endfor %}
+</table></div>
+<p class="small muted">Rollen: „Nur lesen“ sieht alles, ändert nichts. „Lesen und schreiben“ darf erfassen, importieren und Fotos zuordnen. „Administrator“ verwaltet zusätzlich Benutzer.</p>
+{% endblock %}
