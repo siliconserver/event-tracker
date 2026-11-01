@@ -9,13 +9,45 @@
 
 ## Image bauen (GitLab)
 
-`.gitlab-ci.yml` führt bei jedem Push die Tests aus, baut das Image und legt es in der
-GitLab Container Registry des Projekts ab (`$CI_REGISTRY_IMAGE:<commit>`, auf dem
-Standard-Branch zusätzlich `:latest`). Der Build-Job braucht einen Runner mit
-Docker-in-Docker (bei gitlab.com die Shared Runner; bei einem eigenen Runner `privileged = true`).
+`.gitlab-ci.yml` läuft bei jedem Push nach GitLab:
 
-Das GitHub-Repository kann per GitLab „Repository mirroring“ (Pull) gespiegelt werden,
-oder das Projekt zieht ganz nach GitLab um.
+1. **test**: `pytest` in `python:3.13-slim`.
+2. **build-image**: baut das Image für `linux/amd64` (DS420+ und Rootserver), startet es kurz
+   und prüft `/health` (Rauchtest), dann Upload in die GitLab Container Registry des Projekts.
+
+| Auslöser | Tags in der Registry |
+|---|---|
+| Push auf den Standard-Branch (`main`) | `:latest`, `:<kurzer-commit>` |
+| Git-Tag `v1.2.3` | `:1.2.3`, `:1.2`, `:<kurzer-commit>` |
+| anderer Branch | nichts, das Image wird nur gebaut und getestet |
+
+Das zuletzt veröffentlichte `:latest` dient als Schicht-Cache; ohne Änderung an
+`requirements.txt` dauert ein Build daher nur Sekunden.
+
+### Einrichtung (einmalig)
+
+1. **GitLab-Projekt** anlegen (leer, ohne README), z. B. `gitlab.com/<gruppe>/event-tracker`.
+   Container Registry ist dort standardmäßig an (Einstellungen → Allgemein → Sichtbarkeit).
+2. **Runner**: Auf gitlab.com reichen die Shared Runner (Docker-in-Docker ist dort erlaubt).
+   Bei eigenem GitLab/eigenem Runner: Docker-Executor mit `privileged = true` in der
+   `config.toml`, sonst startet der `docker:dind`-Dienst nicht.
+3. **Code von GitHub nach GitLab bringen**. Das Pull-Mirroring von GitLab gibt es nur in den
+   kostenpflichtigen Stufen, deshalb pusht stattdessen die GitHub Action
+   `.github/workflows/mirror-to-gitlab.yml` bei jedem Push auf `main` und jedem `v*`-Tag:
+   - In GitLab: Einstellungen → Zugriffstoken → Projekt-Access-Token, Rolle *Maintainer*,
+     Berechtigung `write_repository`.
+   - In GitHub (Settings → Secrets and variables → Actions): Secret `GITLAB_MIRROR_TOKEN` mit
+     dem Token, Variable `GITLAB_REPO` mit `gitlab.com/<gruppe>/event-tracker`.
+   - Erster Lauf: Actions → „Nach GitLab spiegeln“ → *Run workflow*.
+   Ohne beide Einträge tut die Action nichts. Wer ganz nach GitLab umzieht, löscht sie einfach.
+4. **Zugang für NAS und Server**: In GitLab ein Deploy-Token mit `read_registry` anlegen und auf
+   beiden Maschinen einmal `docker login registry.gitlab.com` damit ausführen.
+5. **Aufräumen** (optional): Einstellungen → Pakete und Registrys → Bereinigungsrichtlinie,
+   z. B. nur die letzten 10 Commit-Tags behalten, `latest` und Versionen (`^\d+\.\d+`) nie löschen.
+
+Version veröffentlichen: `git tag v1.0.0 && git push origin v1.0.0` (auf GitHub); der Tag
+wird gespiegelt und als `:1.0.0` gebaut. Wer feste Stände statt `latest` betreiben will,
+trägt diesen Tag in `EVENT_TRACKER_IMAGE` ein.
 
 ## Auf dem NAS starten
 

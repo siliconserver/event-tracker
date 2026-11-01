@@ -1,16 +1,34 @@
-# Baut und testet den Event-Tracker und legt das Image in der GitLab Container Registry ab.
-# Das NAS zieht anschließend das Image (siehe docs/BETRIEB.md).
+# Testet den Event-Tracker, baut das Docker-Image (linux/amd64, passend für die
+# Synology DS420+ und den Rootserver) und legt es in der GitLab Container Registry ab.
+# Einrichtung und offene Punkte: docs/BETRIEB.md, Abschnitt „Image bauen (GitLab)“.
+#
+# Welche Tags entstehen:
+#   Standard-Branch (main)  → :latest und :<kurzer-commit>
+#   Git-Tag v1.2.3          → :1.2.3, :1.2 und :<kurzer-commit>
+#   andere Branches         → Image wird nur gebaut (Probe), nicht hochgeladen
+
+workflow:
+  rules:
+    # Keine doppelten Pipelines, keine Läufe für Merge-Request-Ereignisse
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_COMMIT_BRANCH || $CI_COMMIT_TAG
+
 stages:
   - test
   - build
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  # Plattform der Zielsysteme (DS420+ = Intel Celeron J4125, Rootserver = x86_64)
+  IMAGE_PLATFORM: linux/amd64
 
 test:
   stage: test
   image: python:3.13-slim
   cache:
+    key:
+      files: [requirements.txt, requirements-dev.txt]
     paths: [.cache/pip]
   script:
     - pip install -r requirements-dev.txt
@@ -23,15 +41,63 @@ build-image:
     - docker:27-dind
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_BUILDKIT: "1"
   before_script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-  script:
-    - docker build --pull -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
-    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker info --format 'Docker {{.ServerVersion}} auf {{.OSType}}/{{.Architecture}}'
     - |
-      if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
-        docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" "$CI_REGISTRY_IMAGE:latest"
-        docker push "$CI_REGISTRY_IMAGE:latest"
+      if [ -n "$CI_REGISTRY" ]; then
+        echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
       fi
-  rules:
-    - if: $CI_COMMIT_BRANCH
+  script:
+    - |
+      set -eu
+      PUSH=false
+      TAGS="$CI_COMMIT_SHORT_SHA"
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        # v1.2.3 → 1.2.3 und 1.2
+        VERSION="${CI_COMMIT_TAG#v}"
+        TAGS="$TAGS $VERSION"
+        MINOR="$(echo "$VERSION" | sed -nE 's/^([0-9]+\.[0-9]+)\.[0-9]+$/\1/p')"
+        [ -n "$MINOR" ] && TAGS="$TAGS $MINOR"
+        PUSH=true
+      elif [ "${CI_COMMIT_BRANCH:-}" = "$CI_DEFAULT_BRANCH" ]; then
+        TAGS="$TAGS latest"
+        PUSH=true
+      fi
+
+      # Zuletzt veröffentlichtes Image als Schicht-Cache nutzen (beschleunigt den Build deutlich)
+      docker pull "$CI_REGISTRY_IMAGE:latest" || echo "Noch kein :latest vorhanden – Build ohne Cache."
+
+      TAG_ARGS=""
+      for t in $TAGS; do TAG_ARGS="$TAG_ARGS -t $CI_REGISTRY_IMAGE:$t"; done
+
+      docker build --pull \
+        --platform "$IMAGE_PLATFORM" \
+        --cache-from "$CI_REGISTRY_IMAGE:latest" \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --label "org.opencontainers.image.title=event-tracker" \
+        --label "org.opencontainers.image.revision=$CI_COMMIT_SHA" \
+        --label "org.opencontainers.image.version=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}" \
+        --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --label "org.opencontainers.image.source=$CI_PROJECT_URL" \
+        $TAG_ARGS .
+
+      # Kurzer Rauchtest: startet der Container und antwortet /health?
+      docker run -d --name smoke -e AUTH_ENABLED=false "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      ok=false
+      for i in $(seq 1 30); do
+        if docker exec smoke python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)" 2>/dev/null; then
+          ok=true; break
+        fi
+        sleep 1
+      done
+      if [ "$ok" != true ]; then docker logs smoke; echo "Rauchtest fehlgeschlagen"; exit 1; fi
+      docker rm -f smoke >/dev/null
+      echo "Rauchtest bestanden."
+
+      if [ "$PUSH" = true ]; then
+        for t in $TAGS; do docker push "$CI_REGISTRY_IMAGE:$t"; done
+        echo "Veröffentlicht: $(for t in $TAGS; do printf '%s:%s ' "$CI_REGISTRY_IMAGE" "$t"; done)"
+      else
+        echo "Branch $CI_COMMIT_BRANCH: Image gebaut und getestet, aber nicht hochgeladen."
+      fi
