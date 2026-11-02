@@ -86,7 +86,10 @@ def create_app(database_url: str | None = None) -> FastAPI:
         response = blocked if blocked is not None else await call_next(request)
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
-        response.headers.setdefault("Referrer-Policy", "same-origin")
+        # Nicht "same-origin": dann fehlt der Referer bei den Kachel-Abrufen, und
+        # tile.openstreetmap.org liefert nur noch "Access blocked"-Kacheln (Issue #5).
+        # Fremde Seiten sehen so nur den Ursprung, nie Pfad oder Filter.
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         return response
 
