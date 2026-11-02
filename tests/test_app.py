@@ -231,3 +231,13 @@ def test_referrer_policy_erlaubt_kachelserver(client):
     r = client.get("/map")
     assert r.status_code == 200
     assert r.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+
+def test_research_prompt_belegte_angaben_nicht_weglassen():
+    from app.importer import research_prompt
+    e = Event(date=dt.date(2024, 5, 1), sport=Sport(name="Fußball"),
+              venue=Venue(name="Betzenberg", city="Kaiserslautern", country="Deutschland"))
+    p = research_prompt(e)
+    assert "Keine belegte Angabe weglassen" in p
+    assert "einen der belegten Werte übernehmen" in p
+    assert "eine seriöse Quelle reicht" in p
