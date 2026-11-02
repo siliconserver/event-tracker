@@ -263,3 +263,13 @@ def test_import_without_venue_uses_placeholder(client):
         e1 = db.get(Event, eid1)
         assert e1.venue.name == "Betzenberg" and e1.venue.lat == 49.434
         assert db.get(Event, eid2).venue.name == UNKNOWN_VENUE
+
+
+def test_research_prompt_belegte_angaben_nicht_weglassen():
+    from app.importer import research_prompt
+    e = Event(date=dt.date(2024, 5, 1), sport=Sport(name="Fußball"),
+              venue=Venue(name="Betzenberg", city="Kaiserslautern", country="Deutschland"))
+    p = research_prompt(e)
+    assert "Keine belegte Angabe weglassen" in p
+    assert "einen der belegten Werte übernehmen" in p
+    assert "eine seriöse Quelle reicht" in p
