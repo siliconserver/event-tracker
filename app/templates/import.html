@@ -14,7 +14,7 @@
 {% for p in plans %}
 <h3>{{ p.payload.event.date }} · {{ p.payload.event.get('title') or p.payload.event.get('sport') }}</h3>
 {% for w in p.warnings %}<p class="warn">{{ w }}{% for d in p.duplicates %} <a href="/events/{{ d.id }}/research">→ dort ergänzen</a>{% endfor %}</p>{% endfor %}
-<p>Spielstätte: {% if p.venue %}<b>{{ p.venue.name }}</b> (vorhanden){% else %}<b>{{ p.payload.event.venue.name }}</b> <span class="tag">wird neu angelegt</span>{% endif %}</p>
+<p>Spielstätte: {% if p.venue %}<b>{{ p.venue.name }}</b> (vorhanden){% else %}<b>{{ p.venue_name }}</b> <span class="tag">wird neu angelegt</span>{% endif %}</p>
 <table><tr><th>Feld</th><th>Aktuell</th><th>Import</th><th>Aktion</th></tr>
 {% for c in p.changes %}<tr><td>{{ c.field }}</td><td class="small">{{ c.current if c.current is not none else '' }}</td><td class="small">{{ c.new }}</td>
 <td>{% if c.action.startswith('behalten') %}<span class="tag lock">{{ c.action }}</span>{% else %}<span class="tag">{{ c.action }}</span>{% endif %}</td></tr>{% endfor %}
