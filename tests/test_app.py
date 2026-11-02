@@ -224,3 +224,10 @@ def test_escaping(client):
     vid = make_venue(client, name="<script>x</script>")
     r = client.get(f"/venues/{vid}")
     assert "<script>x</script>" not in r.text
+
+
+def test_referrer_policy_erlaubt_kachelserver(client):
+    # OSM-Kacheln verlangen einen Referer; "same-origin" ließ die Karte leer (Issue #5)
+    r = client.get("/map")
+    assert r.status_code == 200
+    assert r.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
