@@ -928,6 +928,7 @@ Es gibt noch keine dokumentierten Programmfehler einer bestehenden Anwendung. Be
 - Quellen und Unsicherheiten müssen nachvollziehbar bleiben.
 - Importvorschau und manuelle Korrektur wurden deshalb vorgesehen.
 - Eine spätere Recherche darf sorgfältig korrigierte Angaben nicht wieder ersetzen.
+- **Neue Entscheidung (02.11.2026, Issue #9):** Belegte Angaben werden nicht weggelassen, auch keine Nebensächlichkeiten. Widersprechen sich seriöse Quellen, wird einer der belegten Werte übernommen (statt leer zu bleiben) und die Abweichung als offene Frage notiert. Für unwichtige Details reicht eine seriöse Quelle, ohne aufwendige Recherche.
 
 ### 7.3 Wetterdaten
 
