@@ -231,3 +231,35 @@ def test_referrer_policy_erlaubt_kachelserver(client):
     r = client.get("/map")
     assert r.status_code == 200
     assert r.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+
+def test_import_without_venue_uses_placeholder(client):
+    from app.importer import UNKNOWN_VENUE
+    item = {"event": {"date": "2024-03-02", "sport": "Fußball", "title": "Ohne Ort"}}
+    r = client.post("/import", data={"json": json.dumps(item)})
+    assert r.status_code == 200 and UNKNOWN_VENUE in r.text and "wird neu angelegt" in r.text
+    r = client.post("/import", data={"json": json.dumps(item), "confirm": "1"},
+                    follow_redirects=False)
+    assert r.status_code == 303
+    eid1 = int(r.headers["location"].rsplit("/", 1)[1])
+    # zweites Event ohne Spielstätte nutzt denselben Platzhalter
+    item2 = {"event": {"date": "2024-04-06", "sport": "Fußball", "venue": {"city": "Mainz"}}}
+    r = client.post("/import", data={"json": json.dumps(item2), "confirm": "1"},
+                    follow_redirects=False)
+    eid2 = int(r.headers["location"].rsplit("/", 1)[1])
+    with dbmod.SessionLocal() as db:
+        e1, e2 = db.get(Event, eid1), db.get(Event, eid2)
+        assert e1.venue.name == UNKNOWN_VENUE and e1.venue_id == e2.venue_id
+        assert e1.venue.city is None and e1.venue.lat is None
+    assert client.get("/api/venues.geojson").status_code == 200
+    # späterer Import mit Spielstätte ersetzt den Platzhalter
+    item3 = {"event": {"date": "2024-03-02", "sport": "Fußball",
+                       "venue": {"name": "Betzenberg", "city": "Kaiserslautern",
+                                 "lat": 49.434, "lon": 7.776}}}
+    r = client.post("/import", data={"json": json.dumps(item3), "target_id": eid1,
+                                     "confirm": "1"}, follow_redirects=False)
+    assert r.status_code == 303
+    with dbmod.SessionLocal() as db:
+        e1 = db.get(Event, eid1)
+        assert e1.venue.name == "Betzenberg" and e1.venue.lat == 49.434
+        assert db.get(Event, eid2).venue.name == UNKNOWN_VENUE

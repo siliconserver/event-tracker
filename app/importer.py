@@ -26,6 +26,10 @@ from .services import (
 
 SCHEMA_VERSION = 1
 
+# Platzhalter, wenn der Import keine Spielstätte nennt (Issue #10). Eine gemeinsame
+# Spielstätte ohne Ort/Koordinaten; erscheint daher nicht auf der Karte.
+UNKNOWN_VENUE = "#unbekannt"
+
 EVENT_FIELDS = ("time", "title", "stage", "is_final", "attendance", "weather", "report",
                 "venue_name_at_event", "competition")
 
@@ -48,6 +52,7 @@ class Plan:
     event: Event | None  # Ziel (None = neu)
     venue: Venue | None
     new_venue: bool
+    venue_name: str = ""  # Name der Spielstätte, die verwendet bzw. neu angelegt wird
     changes: list[Change] = field(default_factory=list)
     bouts_action: str = ""
     warnings: list[str] = field(default_factory=list)
@@ -106,18 +111,32 @@ def plan(db: Session, item: dict, target: Event | None, overwrite: bool) -> Plan
     ev = item["event"]
     vinfo = ev.get("venue") or {}
     venue = target.venue if target else None
+    if venue is not None and is_unknown_venue(venue):
+        venue = None  # Platzhalter darf durch eine echte Spielstätte ersetzt werden
     new_venue = False
+    venue_name = venue.name if venue else ""
+    placeholder = False
     if venue is None:
         for n in (vinfo.get("name"), vinfo.get("name_at_event")):
             if n and (venue := find_venue(db, n)):
                 break
         if venue is None:
-            if not vinfo.get("name"):
-                raise ImportError_("Spielstätte fehlt (event.venue.name).")
-            new_venue = True
+            venue_name = ((vinfo.get("name") or "").strip()
+                          or (vinfo.get("name_at_event") or "").strip())
+            if not venue_name:
+                placeholder = True
+                venue_name = UNKNOWN_VENUE
+                venue = find_venue(db, UNKNOWN_VENUE)
+            new_venue = venue is None
+        if venue is not None:
+            venue_name = venue.name
 
-    p = Plan(payload=item, event=target, venue=venue, new_venue=new_venue)
-    if target is None and venue is not None:
+    p = Plan(payload=item, event=target, venue=venue, new_venue=new_venue, venue_name=venue_name)
+    if placeholder:
+        p.warnings.append(f"Keine Spielstätte angegeben – das Event wird der Platzhalter-"
+                          f"Spielstätte „{UNKNOWN_VENUE}“ zugeordnet und kann später "
+                          f"korrigiert werden.")
+    if target is None and venue is not None and not placeholder:
         p.duplicates = duplicate_events(db, dt.date.fromisoformat(ev["date"]), venue.id)
         if p.duplicates:
             p.warnings.append("Am selben Tag gibt es in dieser Spielstätte bereits ein Event. "
@@ -166,18 +185,15 @@ def apply(db: Session, p: Plan) -> Event:
         sport = find_sport(db, ev.get("sport"))
         if sport is None:
             raise ImportError_(f"Sportart „{ev.get('sport')}“ unbekannt.")
-        venue = p.venue
-        if venue is None:
-            venue = Venue(name=vinfo["name"].strip(), city=vinfo.get("city"),
-                          country=vinfo.get("country"), lat=vinfo.get("lat"), lon=vinfo.get("lon"))
-            db.add(venue)
-            db.flush()
-        e = Event(date=dt.date.fromisoformat(ev["date"]), sport=sport, venue=venue,
-                  locked_fields=[])
+        e = Event(date=dt.date.fromisoformat(ev["date"]), sport=sport,
+                  venue=_resolve_venue(db, p, vinfo), locked_fields=[])
         e.visit = Visit()
         db.add(e)
-    else:
-        venue = e.venue
+    elif is_unknown_venue(e.venue) and (p.new_venue or (p.venue and p.venue is not e.venue)):
+        # Platzhalter durch die nun bekannte Spielstätte ersetzen
+        e.venue = _resolve_venue(db, p, vinfo)
+    venue = e.venue
+    if not is_unknown_venue(venue):
         # Fehlende Koordinaten/Ort der Spielstätte ergänzen, nie überschreiben.
         for k in ("city", "country", "lat", "lon"):
             if getattr(venue, k) is None and vinfo.get(k) is not None:
@@ -193,7 +209,7 @@ def apply(db: Session, p: Plan) -> Event:
 
     # damaligen Namen als Alias der Spielstätte merken
     at = vinfo.get("name_at_event")
-    if at and at.strip() and at.strip() != venue.name and not any(
+    if at and not is_unknown_venue(venue) and at.strip() and at.strip() != venue.name and not any(
         a.name == at.strip() for a in venue.aliases
     ):
         venue.aliases.append(VenueAlias(name=at.strip()))
@@ -233,6 +249,25 @@ def apply(db: Session, p: Plan) -> Event:
             e.open_questions = "\n".join(filter(None, [existing] + add))
     db.flush()
     return e
+
+
+def is_unknown_venue(v: Venue | None) -> bool:
+    return v is not None and v.name == UNKNOWN_VENUE
+
+
+def _resolve_venue(db: Session, p: Plan, vinfo: dict) -> Venue:
+    if p.venue is not None:
+        return p.venue
+    if p.venue_name == UNKNOWN_VENUE:
+        venue = Venue(name=UNKNOWN_VENUE,
+                      notes="Platzhalter für Events, deren Spielstätte noch unbekannt ist.")
+    else:
+        venue = Venue(name=p.venue_name, city=vinfo.get("city"), country=vinfo.get("country"),
+                      lat=vinfo.get("lat"), lon=vinfo.get("lon"))
+    db.add(venue)
+    db.flush()
+    p.venue = venue
+    return venue
 
 
 TEMPLATE = {

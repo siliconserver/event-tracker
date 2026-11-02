@@ -108,6 +108,7 @@ Als Ausgangsdaten für die Erfassung und Recherche wurden genannt:
 - Persönliches Highlight.
 
 Die genaue Formularstruktur, Pflichtfelder und Validierungsregeln wurden noch nicht festgelegt.
+*(Neue Entscheidung (02.11.2026): Beim JSON-Import ist die Spielstätte kein Pflichtfeld. Fehlt sie, wird das Event der Platzhalter-Spielstätte „#unbekannt“ zugeordnet, siehe docs/IMPORT_FORMAT.md.)*
 
 ### 2.2 Recherche öffentlicher Veranstaltungsdaten
 

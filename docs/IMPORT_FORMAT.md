@@ -43,8 +43,11 @@ für spätere API-Adapter und für Sammelimporte. Alle Wege liefern in dieses Fo
 }
 ```
 
-Pflicht sind nur `event.date` und (bei neuen Events) `event.sport` und `event.venue.name`.
-Alles andere darf fehlen oder `null` sein. Bei Kampfabenden steht jeder Kampf als eigener
+Pflicht sind nur `event.date` und (bei neuen Events) `event.sport`. Fehlt die Spielstätte
+(`event.venue.name` und `name_at_event`), wird das Event der Platzhalter-Spielstätte
+`#unbekannt` zugeordnet (ohne Ort/Koordinaten, daher nicht auf der Karte). Ein späterer
+Import mit Spielstätte auf dasselbe Event ersetzt den Platzhalter; alternativ das Event
+bearbeiten oder `#unbekannt` mit der richtigen Spielstätte zusammenführen. Alles andere darf fehlen oder `null` sein. Bei Kampfabenden steht jeder Kampf als eigener
 Eintrag in `bouts` (`home`/`away` = Kämpfer A/B, `winner`, `method`, `round`).
 
 Sammelimport: eine Liste solcher Objekte oder `{"events": [ … ]}`.
